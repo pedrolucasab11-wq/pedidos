@@ -1,0 +1,155 @@
+/* Estilos existentes do dashboard */
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.dashboard-content {
+  flex: 1;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+.dashboard-content h1 {
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.sales-summary {
+  margin-bottom: 40px;
+}
+
+.sales-summary h2 {
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.sales-cards {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.sales-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  min-width: 200px;
+}
+
+.sales-card h3 {
+  margin: 0 0 10px 0;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sales-card p {
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+  color: #2196F3;
+}
+
+/* Novos estilos para a seção de pedidos */
+.orders-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.orders-section h2 {
+  margin: 0 0 20px 0;
+  color: #333;
+}
+
+.orders-table-container {
+  overflow-x: auto;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.orders-table th,
+.orders-table td {
+  padding: 12px 8px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.orders-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #555;
+  font-size: 14px;
+}
+
+.orders-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.order-number {
+  font-family: monospace;
+  font-weight: 500;
+  color: #666;
+  font-size: 12px;
+}
+
+.products-summary {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payment-method {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.payment-method.pix {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.payment-method.boleto {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.order-total {
+  font-weight: 600;
+  color: #2e7d32;
+}
+
+.no-orders {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 40px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .sales-cards {
+    flex-direction: column;
+  }
+  
+  .orders-table {
+    font-size: 12px;
+  }
+  
+  .orders-table th,
+  .orders-table td {
+    padding: 8px 4px;
+  }
+}
