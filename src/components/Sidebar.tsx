@@ -15,7 +15,7 @@ function Sidebar() {
     const sellerId = localStorage.getItem("sellerId");
 
     if (sellerId) {
-      fetch(`http://localhost:3333/sellers/${sellerId}`)
+      fetch(`https://backend-pedidos-i1qd.onrender.com/sellers/${sellerId}`)
         .then((res) => res.json())
         .then((data) => setSeller(data))
         .catch((err) => console.error("Erro ao buscar vendedor:", err));

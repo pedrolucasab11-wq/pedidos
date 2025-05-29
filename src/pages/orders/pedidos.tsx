@@ -598,19 +598,19 @@ const CreateOrderPage: React.FC = () => {
   useEffect(() => {
     // Buscar vendedores
     axios
-      .get("http://localhost:3333/sellers")
+      .get("https://backend-pedidos-i1qd.onrender.com/sellers")
       .then((res) => setSellers(res.data))
       .catch((err) => console.error("Erro ao buscar vendedores:", err));
 
     // Buscar fábricas (com produtos inclusos)
     axios
-      .get("http://localhost:3333/factories")
+      .get("https://backend-pedidos-i1qd.onrender.com/factories")
       .then((res) => setFactories(res.data))
       .catch((err) => console.error("Erro ao buscar fábricas:", err));
 
     // Buscar clientes
     axios
-      .get("http://localhost:3333/clients")
+      .get("https://backend-pedidos-i1qd.onrender.com/clients")
       .then((res) => setClients(res.data))
       .catch((err) => console.error("Erro ao buscar clientes:", err));
   }, []);
@@ -711,7 +711,7 @@ const CreateOrderPage: React.FC = () => {
     };
 
     axios
-      .post("http://localhost:3333/orders", data)
+      .post("https://backend-pedidos-i1qd.onrender.com/orders", data)
       .then((response) => {
         alert("Pedido criado com sucesso!");
 

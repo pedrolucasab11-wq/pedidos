@@ -68,7 +68,7 @@ const FactoryDetailsPage: React.FC = () => {
 
   useEffect(() => {
     axios
-      .get(`http://localhost:3333/factories/${id}`)
+      .get(`https://backend-pedidos-i1qd.onrender.com/factories/${id}`)
       .then((res) => setFactory(res.data))
       .catch((err) => console.error("Erro ao buscar fábrica:", err));
   }, [id]);
@@ -116,7 +116,7 @@ const FactoryDetailsPage: React.FC = () => {
     }
 
     axios
-      .post("http://localhost:3333/products", {
+      .post("https://backend-pedidos-i1qd.onrender.com/products", {
         ...newProduct,
       })
       .then(() => {
@@ -132,7 +132,7 @@ const FactoryDetailsPage: React.FC = () => {
         setPriceInput("");
         setColorInput("");
         // Refresh
-        return axios.get(`http://localhost:3333/factories/${id}`);
+        return axios.get(`https://backend-pedidos-i1qd.onrender.com/factories/${id}`);
       })
       .then((res) => setFactory(res.data))
       .catch((err) => console.error("Erro:", err));

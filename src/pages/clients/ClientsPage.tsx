@@ -68,7 +68,7 @@ const ClientsPage: React.FC = () => {
 
   const fetchClients = () => {
     axios
-      .get("http://localhost:3333/clients")
+      .get("https://backend-pedidos-i1qd.onrender.com/clients")
       .then((res) => setClients(res.data))
       .catch((err) => console.error("Erro ao buscar clientes:", err));
   };
@@ -197,7 +197,7 @@ const ClientsPage: React.FC = () => {
     const clientData = { ...newClient, address: fullAddress };
 
     axios
-      .post("http://localhost:3333/clients", clientData)
+      .post("https://backend-pedidos-i1qd.onrender.com/clients", clientData)
       .then(() => {
         alert("Cliente cadastrado com sucesso!");
         setShowModal(false);

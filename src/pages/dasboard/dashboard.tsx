@@ -45,7 +45,7 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:3333/orders")
+      .get("https://backend-pedidos-i1qd.onrender.com/orders")
       .then((response) => {
         const ordersData: Order[] = response.data;
         setOrders(ordersData);

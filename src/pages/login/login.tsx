@@ -12,7 +12,7 @@ function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:3333/auth/login", {
+      const response = await axios.post("https://backend-pedidos-i1qd.onrender.com/auth/login", {
         email,
         password,
       });

@@ -42,7 +42,7 @@ const FactoriesPage: React.FC = () => {
 
   const fetchFactories = () => {
     axios
-      .get("http://localhost:3333/factories")
+      .get("https://backend-pedidos-i1qd.onrender.com/factories")
       .then((res) => setFactories(res.data))
       .catch((err) => console.error("Erro ao buscar fábricas:", err));
   };
@@ -86,7 +86,7 @@ const FactoriesPage: React.FC = () => {
     }
 
     axios
-      .post("http://localhost:3333/factories", newFactory)
+      .post("https://backend-pedidos-i1qd.onrender.com/factories", newFactory)
       .then(() => {
         alert("Fábrica cadastrada com sucesso!");
         setShowFactoryModal(false);
