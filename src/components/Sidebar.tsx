@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import "./Sidebar.css";
 
 interface Seller {
@@ -10,6 +10,7 @@ interface Seller {
 
 function Sidebar() {
   const [seller, setSeller] = useState<Seller | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const sellerId = localStorage.getItem("sellerId");
@@ -21,6 +22,11 @@ function Sidebar() {
         .catch((err) => console.error("Erro ao buscar vendedor:", err));
     }
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("sellerId");
+    navigate("/");
+  };
 
   if (!seller) {
     return <div className="sidebar">Carregando...</div>;
@@ -37,6 +43,9 @@ function Sidebar() {
         <NavLink to="/pedidos">Fazer Pedido</NavLink>
         <NavLink to="/fabricas">Fábricas</NavLink>
         <NavLink to="/clientes">Clientes</NavLink>
+        <button onClick={handleLogout} className="logout-button">
+          Sair
+        </button>
       </nav>
     </div>
   );
