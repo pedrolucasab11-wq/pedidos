@@ -4,6 +4,7 @@ import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
 import ToggleSwitch from "../../components/ToggleSwitch";
 import { maskCNPJ, maskPhone, maskStateInscr, maskCEP, validateCNPJ } from "../../utils/masks";
+import { lookupCNPJ } from "../../services/cnpjLookup";
 import {
   FaUsers,
   FaPlus,
@@ -14,6 +15,7 @@ import {
   FaTimes,
   FaCheck,
   FaSpinner,
+  FaCheckCircle,
 } from "react-icons/fa";
 import "./Clients.css";
 
@@ -80,6 +82,8 @@ const ClientsPage: React.FC = () => {
   });
 
   const [isLoadingCEP, setIsLoadingCEP] = useState(false);
+  const [isLoadingCNPJ, setIsLoadingCNPJ] = useState(false);
+  const [cnpjAutoFilled, setCnpjAutoFilled] = useState(false);
 
   const fetchClients = () => {
     api
@@ -111,11 +115,55 @@ const ClientsPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let { name, value } = e.target;
-    if (name === "cnpj") value = maskCNPJ(value);
     if (name === "phone") value = maskPhone(value);
     if (name === "stateInscr") value = maskStateInscr(value);
-    
+
     setNewClient((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCNPJChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawCNPJ = e.target.value.replace(/\D/g, "");
+    const formattedCNPJ = maskCNPJ(e.target.value);
+
+    setNewClient((prev) => ({ ...prev, cnpj: formattedCNPJ }));
+    setCnpjAutoFilled(false);
+
+    if (rawCNPJ.length === 14) {
+      if (!validateCNPJ(rawCNPJ)) {
+        alert("CNPJ inválido! Verifique os números digitados.");
+        return;
+      }
+
+      setIsLoadingCNPJ(true);
+      try {
+        const data = await lookupCNPJ(rawCNPJ);
+
+        setNewClient((prev) => ({
+          ...prev,
+          companyName: data.nomeFantasia || prev.companyName,
+        }));
+
+        setAddressForm((prev) => ({
+          ...prev,
+          cep: data.cep ? maskCEP(data.cep) : prev.cep,
+          street: data.logradouro || prev.street,
+          number: data.numero || prev.number,
+          complement: data.complemento || prev.complement,
+          neighborhood: data.bairro || prev.neighborhood,
+          city: data.cidade || prev.city,
+          state: data.estado || prev.state,
+        }));
+
+        setCnpjAutoFilled(true);
+      } catch (error) {
+        console.error("Erro ao consultar CNPJ:", error);
+        alert(
+          "Não foi possível localizar este CNPJ na base da Receita Federal. Preencha os dados manualmente."
+        );
+      } finally {
+        setIsLoadingCNPJ(false);
+      }
+    }
   };
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -308,7 +356,15 @@ const ClientsPage: React.FC = () => {
                     <div className="form-group">
                       <label htmlFor="c-cnpj">CNPJ *</label>
                       <input id="c-cnpj" type="text" name="cnpj" value={newClient.cnpj}
-                        onChange={handleChange} placeholder="00.000.000/0000-00" required />
+                        onChange={handleCNPJChange} placeholder="00.000.000/0000-00" maxLength={18} required />
+                      {isLoadingCNPJ && (
+                        <small className="cep-loading"><FaSpinner className="spin-icon" /> Consultando CNPJ na Receita Federal...</small>
+                      )}
+                      {cnpjAutoFilled && !isLoadingCNPJ && (
+                        <small className="cep-loading" style={{ color: "var(--color-success)" }}>
+                          <FaCheckCircle /> Dados preenchidos automaticamente. Revise antes de salvar.
+                        </small>
+                      )}
                     </div>
                     <div className="form-group">
                       <label htmlFor="c-ie">Inscrição Estadual</label>

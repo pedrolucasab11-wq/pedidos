@@ -13,6 +13,10 @@ export interface CNPJLookupResult {
   cidade: string;
   bairro: string;
   endereco: string;
+  // Campos de endereço separados, úteis para formulários com rua/número/complemento distintos
+  logradouro: string;
+  numero: string;
+  complemento: string;
   dataAbertura: string; // yyyy-MM-dd, pronto para <input type="date">
   porte: string;
   atividadePrincipal: string;
@@ -63,6 +67,11 @@ export const lookupCNPJ = async (cnpj: string): Promise<CNPJLookupResult> => {
     `${BRASIL_API_BASE_URL}/${cleanCNPJ}`
   );
 
+  const logradouro =
+    data.descricao_tipo_de_logradouro && data.logradouro
+      ? `${data.descricao_tipo_de_logradouro} ${data.logradouro}`
+      : data.logradouro || "";
+
   return {
     cnpj: data.cnpj,
     razaoSocial: data.razao_social || "",
@@ -72,6 +81,9 @@ export const lookupCNPJ = async (cnpj: string): Promise<CNPJLookupResult> => {
     cidade: data.municipio || "",
     bairro: data.bairro || "",
     endereco: buildEndereco(data),
+    logradouro,
+    numero: data.numero || "",
+    complemento: data.complemento || "",
     dataAbertura: data.data_inicio_atividade || "",
     porte: data.descricao_porte || data.porte || "",
     atividadePrincipal: data.cnae_fiscal_descricao || "",
