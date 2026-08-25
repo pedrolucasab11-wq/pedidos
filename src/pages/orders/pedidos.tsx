@@ -1,582 +1,48 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
+import {
+  generateOrderPDF,
+  Product,
+  Factory,
+  Client,
+  Seller,
+  CartItem,
+} from "../../utils/pdfGenerator";
+import { maskPhone } from "../../utils/masks";
+import {
+  FaClipboardList,
+  FaBoxOpen,
+  FaSearch,
+  FaHashtag,
+  FaTag,
+  FaStickyNote,
+  FaPlus,
+  FaShoppingCart,
+  FaTrash,
+  FaTruck,
+  FaTimes,
+  FaCheck,
+} from "react-icons/fa";
 import "./Pedidos.css";
 
-interface Product {
-  id: number;
-  name: string;
-  code: string;
-  colors: string[];
-  unitPrice: number;
-  factoryId: number;
-}
-
-interface Factory {
-  id: number;
-  name: string;
-  logo: string;
-  email: string;
-  phone: string;
-  products: Product[];
-}
-
-interface Client {
-  id: number;
-  companyName: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  cnpj?: string;
-  stateInscr?: string;
-  email?: string;
-  phone?: string;
-}
-
-interface Seller {
-  id: number;
-  name: string;
-  email?: string;
-  phone?: string;
-}
-
-interface CartItem {
-  product: Product;
-  selectedColor: string;
-  quantity: number;
-}
-
-// Função para gerar PDF melhorada
-const generateOrderPDF = (orderData: {
-  orderNumber: string;
-  date: string;
-  client: Client;
-  seller: Seller;
-  factory: Factory;
-  cart: CartItem[];
-  buyerName: string;
-  paymentMethod: string;
-  description: string;
-  total: number;
-}) => {
-  const {
-    orderNumber,
-    date,
-    client,
-    seller,
-    factory,
-    cart,
-    buyerName,
-    paymentMethod,
-    description,
-    total,
-  } = orderData;
-
-  // Criar uma nova janela para o PDF
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-
-  const pdfHTML = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Pedido ${orderNumber}</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            
-            body {
-                font-family: 'Arial', sans-serif;
-                font-size: 11px;
-                line-height: 1.4;
-                color: #333;
-                background: white;
-                padding: 20px;
-                max-width: 210mm;
-                margin: 0 auto;
-            }
-            
-            /* Header com 3 colunas */
-            .header-section {
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 20px;
-                margin-bottom: 20px;
-                padding-bottom: 15px;
-                border-bottom: 2px solid #000;
-            }
-            
-            .header-column {
-                padding: 10px;
-            }
-            
-            .header-column h3 {
-                font-size: 12px;
-                font-weight: bold;
-                color: #000;
-                margin-bottom: 8px;
-                text-transform: uppercase;
-                border-bottom: 1px solid #ccc;
-                padding-bottom: 3px;
-            }
-            
-            .header-info {
-                font-size: 10px;
-                line-height: 1.3;
-            }
-            
-            .header-info div {
-                margin-bottom: 2px;
-            }
-            
-            /* Dados do pedido - canto superior direito */
-            .order-info {
-                text-align: right;
-                font-weight: bold;
-                font-size: 12px;
-            }
-            
-            .order-info .order-number {
-                font-size: 16px;
-                color: #000;
-                margin-bottom: 5px;
-            }
-            
-            .order-info .order-date {
-                font-size: 12px;
-                color: #666;
-            }
-            
-            /* Título principal */
-            .main-title {
-                text-align: center;
-                font-size: 20px;
-                font-weight: bold;
-                text-transform: uppercase;
-                margin: 20px 0;
-                padding: 10px;
-                background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
-                border: 2px solid #000;
-                letter-spacing: 1px;
-            }
-            
-            /* Seção do cliente */
-            .client-section {
-                margin-bottom: 20px;
-                border: 1px solid #000;
-                padding: 15px;
-                background: #fafafa;
-            }
-            
-            .client-title {
-                font-size: 14px;
-                font-weight: bold;
-                text-transform: uppercase;
-                margin-bottom: 10px;
-                color: #000;
-            }
-            
-            .client-info {
-                display: grid;
-                grid-template-columns: 2fr 1fr 1fr;
-                gap: 20px;
-                font-size: 10px;
-                line-height: 1.4;
-            }
-            
-            .client-main-info h4 {
-                font-size: 12px;
-                font-weight: bold;
-                margin-bottom: 8px;
-                color: #000;
-            }
-            
-            .info-line {
-                margin-bottom: 4px;
-                display: flex;
-                align-items: flex-start;
-            }
-            
-            .info-label {
-                font-weight: bold;
-                min-width: 80px;
-                margin-right: 8px;
-                color: #555;
-            }
-            
-            .info-value {
-                flex: 1;
-                color: #000;
-            }
-            
-            /* Seção de produtos */
-            .products-section {
-                margin-bottom: 20px;
-            }
-            
-            .products-title {
-                font-size: 16px;
-                font-weight: bold;
-                text-transform: uppercase;
-                margin-bottom: 15px;
-                padding: 8px 0;
-                border-bottom: 2px solid #000;
-                text-align: center;
-            }
-            
-            .products-table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 10px;
-                margin-bottom: 15px;
-            }
-            
-            .products-table th {
-                background: linear-gradient(135deg, #4a4a4a, #2a2a2a);
-                color: white;
-                font-weight: bold;
-                padding: 10px 8px;
-                text-align: center;
-                border: 1px solid #000;
-                font-size: 10px;
-                text-transform: uppercase;
-            }
-            
-            .products-table td {
-                padding: 8px;
-                border: 1px solid #ccc;
-                text-align: center;
-                background: white;
-            }
-            
-            .products-table tr:nth-child(even) td {
-                background: #f9f9f9;
-            }
-            
-            .products-table tr:hover td {
-                background: #f0f8ff;
-            }
-            
-            .product-name {
-                text-align: left !important;
-                font-weight: bold;
-                color: #000;
-            }
-            
-            .text-right {
-                text-align: right !important;
-            }
-            
-            .text-center {
-                text-align: center !important;
-            }
-            
-            /* Seção inferior com descrição e totais */
-            .bottom-section {
-                display: grid;
-                grid-template-columns: 2fr 1fr;
-                gap: 30px;
-                margin-top: 20px;
-            }
-            
-            .description-section {
-                border: 1px solid #ccc;
-                padding: 15px;
-                background: #fafafa;
-                min-height: 120px;
-            }
-            
-            .description-title {
-                font-weight: bold;
-                font-size: 12px;
-                margin-bottom: 10px;
-                color: #000;
-                text-transform: uppercase;
-            }
-            
-            .description-content {
-                font-size: 10px;
-                line-height: 1.4;
-                color: #333;
-            }
-            
-            .totals-section {
-                border: 1px solid #000;
-                background: white;
-            }
-            
-            .totals-table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-            
-            .totals-table td {
-                padding: 8px 12px;
-                border-bottom: 1px solid #ccc;
-                font-size: 11px;
-            }
-            
-            .totals-table .label {
-                font-weight: bold;
-                background: #f0f0f0;
-                text-transform: uppercase;
-                color: #333;
-                border-right: 1px solid #ccc;
-            }
-            
-            .totals-table .value {
-                text-align: right;
-                font-weight: bold;
-                color: #000;
-                background: white;
-            }
-            
-            .totals-table tr:last-child td {
-                background: #2a2a2a;
-                color: white;
-                font-weight: bold;
-                font-size: 12px;
-                border-bottom: none;
-            }
-            
-            /* Responsividade para impressão */
-            @media print {
-                body { 
-                    margin: 0; 
-                    padding: 15px;
-                    font-size: 10px;
-                }
-                
-                .header-section {
-                    grid-template-columns: 1fr 1fr 1fr;
-                    gap: 15px;
-                }
-                
-                .client-info {
-                    grid-template-columns: 2fr 1fr 1fr;
-                    gap: 15px;
-                }
-                
-                .bottom-section {
-                    grid-template-columns: 2fr 1fr;
-                    gap: 20px;
-                }
-            }
-            
-            /* Melhorias visuais */
-            .company-name {
-                font-size: 11px !important;
-                font-weight: bold;
-                color: #000;
-            }
-            
-            .contact-info {
-                color: #666;
-                font-size: 9px;
-            }
-            
-            .highlight {
-                background: #ffffcc;
-                padding: 2px 4px;
-                border-radius: 2px;
-            }
-        </style>
-    </head>
-    <body>
-        <!-- Header com 3 colunas -->
-        <div class="header-section">
-            <!-- Dados do Vendedor -->
-            <div class="header-column">
-                <h3>Representante</h3>
-                <div class="header-info">
-                    <div class="company-name">${seller.name || ""}</div>
-                    <div class="contact-info">${seller.email || ""}</div>
-                    <div class="contact-info">${seller.phone || ""}</div>
-                </div>
-            </div>
-            
-            <!-- Dados da Fábrica -->
-            <div class="header-column">
-                <h3>Fábricante</h3>
-                <div class="header-info">
-                    <div class="company-name">${factory.name}</div>
-                    <div class="contact-info">${factory.email || ""}</div>
-                    <div class="contact-info">${factory.phone || ""}</div>
-                </div>
-            </div>
-            
-            <!-- Dados do Pedido -->
-            <div class="header-column">
-                <div class="order-info">
-                    <div class="order-number">${orderNumber}</div>
-                    <div class="order-date">DATA ${date}</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Título Principal -->
-        <div class="main-title">PEDIDO DE VENDA</div>
-        
-        <!-- Seção do Cliente -->
-        <div class="client-section">
-            <div class="client-title">CLIENTE</div>
-            <div class="client-info">
-                <!-- Informações principais do cliente -->
-                <div class="client-main-info">
-                    <h4>${client.companyName || ""}</h4>
-                    <div class="info-line">
-                        <span class="info-label">ENDEREÇO:</span>
-                        <span class="info-value">${client.address || ""}</span>
-                    </div>
-                    <div class="info-line">
-                        <span class="info-label">CNPJ:</span>
-                        <span class="info-value">${client.cnpj || ""}</span>
-                    </div>
-                    <div class="info-line">
-                        <span class="info-label">INSC.ESTADUAL:</span>
-                        <span class="info-value">${
-                          client.stateInscr || ""
-                        }</span>
-                    </div>
-                </div>
-                
-                <!-- Dados de contato -->
-                <div class="client-contact">
-                    <div class="info-line">
-                        <span class="info-label">TEL.CLIENTE:</span>
-                        <span class="info-value">${client.phone || ""}</span>
-                    </div>
-                    <div class="info-line">
-                        <span class="info-label">E-MAIL:</span>
-                        <span class="info-value">${client.email || ""}</span>
-                    </div>
-                    <div class="info-line">
-                        <span class="info-label">COMPRADOR:</span>
-                        <span class="info-value">${buyerName || ""}</span>
-                    </div>
-                </div>
-                
-                <!-- Dados comerciais -->
-                <div class="client-commercial">
-                    <div class="info-line">
-                        <span class="info-label">VENDEDOR:</span>
-                        <span class="info-value">${seller.name}</span>
-                    </div>
-                    <div class="info-line">
-                        <span class="info-label">FORMA PGTO:</span>
-                        <span class="info-value">${paymentMethod}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Seção de Produtos -->
-        <div class="products-section">
-            <div class="products-title">PRODUTOS</div>
-            <table class="products-table">
-                <thead>
-                    <tr>
-                        <th style="width: 35%;">PRODUTO</th>
-                        <th style="width: 8%;">QUANT.</th>
-                        <th style="width: 12%;">UNIT.</th>
-                        <th style="width: 12%;">DESCONTOS</th>
-                        <th style="width: 12%;">C/DESC.</th>
-                        <th style="width: 15%;">SUB-TOTAL</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${cart
-                      .map(
-                        (item) => `
-                        <tr>
-                            <td class="product-name">
-                                <strong>${item.product.name}</strong><br>
-                                <small>Código: ${item.product.code}</small><br>
-                                <small>Cor: <span class="highlight">${
-                                  item.selectedColor
-                                }</span></small>
-                            </td>
-                            <td class="text-center"><strong>${
-                              item.quantity
-                            }</strong></td>
-                            <td class="text-right">R$ ${item.product.unitPrice.toFixed(
-                              2
-                            )}</td>
-                            <td class="text-right">0,00</td>
-                            <td class="text-right">R$ ${item.product.unitPrice.toFixed(
-                              2
-                            )}</td>
-                            <td class="text-right"><strong>R$ ${(
-                              item.product.unitPrice * item.quantity
-                            ).toFixed(2)}</strong></td>
-                        </tr>
-                    `
-                      )
-                      .join("")}
-                </tbody>
-            </table>
-        </div>
-        
-        <!-- Seção Inferior: Descrição e Totais -->
-        <div class="bottom-section">
-            <!-- Descrição -->
-            <div class="description-section">
-                <div class="description-title">Observações</div>
-                <div class="description-content">
-                    ${description || "Nenhuma observação adicional."}
-                </div>
-            </div>
-            
-            <!-- Totais -->
-            <div class="totals-section">
-                <table class="totals-table">
-                    <tr>
-                        <td class="label">Total dos Produtos</td>
-                        <td class="value">R$ ${total.toFixed(2)}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Adicional (+/-)</td>
-                        <td class="value">0,00</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Valor IPI</td>
-                        <td class="value">0,00</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Valor ST</td>
-                        <td class="value">0,00</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Total + IPI + ST</td>
-                        <td class="value">R$ ${total.toFixed(2)}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-        
-        <script>
-            window.addEventListener('load', function() {
-                setTimeout(function() {
-                    window.print();
-                }, 500);
-            });
-        </script>
-    </body>
-    </html>
-  `;
-
-  printWindow.document.write(pdfHTML);
-  printWindow.document.close();
+const applyCascadeDiscount = (basePrice: number, discountString?: string): number => {
+  if (!discountString || discountString.trim() === "") return basePrice;
+  const discounts = discountString
+    .split("/")
+    .map(d => parseFloat(d.trim().replace(",", ".")))
+    .filter(d => !isNaN(d));
+  
+  let currentPrice = basePrice;
+  for (const d of discounts) {
+    currentPrice = currentPrice * (1 - (d / 100));
+  }
+  return currentPrice;
 };
 
+
 const CreateOrderPage: React.FC = () => {
-  const [sellers, setSellers] = useState<Seller[]>([]);
-  const [selectedSeller, setSelectedSeller] = useState<number | null>(null);
+  const [currentSeller, setCurrentSeller] = useState<Seller | null>(null);
 
   const [factories, setFactories] = useState<Factory[]>([]);
   const [selectedFactory, setSelectedFactory] = useState<Factory | null>(null);
@@ -586,37 +52,41 @@ const CreateOrderPage: React.FC = () => {
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [buyerName, setBuyerName] = useState("");
+  const [buyerPhone, setBuyerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
   const [description, setDescription] = useState("");
+  const [freightType, setFreightType] = useState("CIF");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedColor, setSelectedColor] = useState("");
+  const [type, setType] = useState("");
+  const [observation, setObservation] = useState("");
+  const [discount, setDiscount] = useState("");
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
-    // Buscar vendedores
-    axios
-      .get("https://backend-pedidos-i1qd.onrender.com/sellers")
-      .then((res) => setSellers(res.data))
-      .catch((err) => console.error("Erro ao buscar vendedores:", err));
+    // Buscar vendedor autenticado (pedidos são sempre criados em nome de quem está logado)
+    api
+      .get("/auth/me")
+      .then((res) => setCurrentSeller(res.data))
+      .catch((err) => console.error("Erro ao buscar vendedor:", err));
 
     // Buscar fábricas (com produtos inclusos)
-    axios
-      .get("https://backend-pedidos-i1qd.onrender.com/factories")
-      .then((res) => setFactories(res.data))
+    api
+      .get("/factories")
+      .then((res) => setFactories(res.data.filter((f: any) => f.active !== false)))
       .catch((err) => console.error("Erro ao buscar fábricas:", err));
 
     // Buscar clientes
-    axios
-      .get("https://backend-pedidos-i1qd.onrender.com/clients")
-      .then((res) => setClients(res.data))
+    api
+      .get("/clients")
+      .then((res) => setClients(res.data.filter((c: any) => c.active !== false)))
       .catch((err) => console.error("Erro ao buscar clientes:", err));
   }, []);
 
   const filteredProducts = selectedFactory
-    ? selectedFactory.products.filter(
+    ? (selectedFactory.products || []).filter(
         (product) =>
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           product.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -625,18 +95,22 @@ const CreateOrderPage: React.FC = () => {
 
   const openProductModal = (product: Product) => {
     setSelectedProduct(product);
-    setSelectedColor(product.colors[0] || "");
+    setType(product.type || "");
+    setObservation(product.observation || "");
+    setDiscount("");
     setQuantity(1);
     setShowProductModal(true);
   };
 
   const addToCart = () => {
-    if (!selectedProduct || !selectedColor) return;
+    if (!selectedProduct) return;
 
     const existingItemIndex = cart.findIndex(
       (item) =>
         item.product.id === selectedProduct.id &&
-        item.selectedColor === selectedColor
+        item.type === type &&
+        item.observation === observation &&
+        item.discount === discount
     );
 
     if (existingItemIndex >= 0) {
@@ -648,7 +122,9 @@ const CreateOrderPage: React.FC = () => {
       // Adiciona novo item
       const newItem: CartItem = {
         product: selectedProduct,
-        selectedColor,
+        type,
+        observation,
+        discount,
         quantity,
       };
       setCart([...cart, newItem]);
@@ -660,14 +136,18 @@ const CreateOrderPage: React.FC = () => {
 
   const updateCartItem = (
     index: number,
-    field: "quantity" | "color",
+    field: "quantity" | "type" | "observation" | "discount",
     value: string | number
   ) => {
     const updatedCart = [...cart];
     if (field === "quantity") {
-      updatedCart[index].quantity = Math.max(1, Number(value));
-    } else if (field === "color") {
-      updatedCart[index].selectedColor = String(value);
+      updatedCart[index].quantity = value as any;
+    } else if (field === "type") {
+      updatedCart[index].type = String(value);
+    } else if (field === "observation") {
+      updatedCart[index].observation = String(value);
+    } else if (field === "discount") {
+      updatedCart[index].discount = String(value);
     }
     setCart(updatedCart);
   };
@@ -679,13 +159,14 @@ const CreateOrderPage: React.FC = () => {
 
   const getTotalValue = () => {
     return cart.reduce((total, item) => {
-      return total + item.product.unitPrice * item.quantity;
+      const unitPriceWithDiscount = applyCascadeDiscount(item.product.unitPrice, item.discount);
+      const qty = Number(item.quantity) || 0;
+      return total + (unitPriceWithDiscount * qty);
     }, 0);
   };
 
   const handleSubmit = () => {
     if (
-      !selectedSeller ||
       !selectedFactory ||
       !selectedClient ||
       cart.length === 0
@@ -697,39 +178,43 @@ const CreateOrderPage: React.FC = () => {
     }
 
     const data = {
-      sellerId: selectedSeller,
       factoryId: selectedFactory.id,
       clientId: selectedClient,
       buyerName,
+      buyerPhone,
       paymentMethod,
       description,
+      freightType,
       products: cart.map((item) => ({
         productId: item.product.id,
-        color: item.selectedColor,
-        quantity: item.quantity,
+        type: item.type,
+        observation: item.observation,
+        discount: item.discount,
+        quantity: Number(item.quantity) || 1,
       })),
     };
 
-    axios
-      .post("https://backend-pedidos-i1qd.onrender.com/orders", data)
+    api
+      .post("/orders", data)
       .then((response) => {
         alert("Pedido criado com sucesso!");
 
         // Gerar PDF do pedido
         const orderNumber = response.data.id || new Date().getTime().toString();
-        const selectedSellerData = sellers.find((s) => s.id === selectedSeller);
         const selectedClientData = clients.find((c) => c.id === selectedClient);
 
-        if (selectedSellerData && selectedClientData && selectedFactory) {
+        if (currentSeller && selectedClientData && selectedFactory) {
           generateOrderPDF({
             orderNumber,
             date: new Date().toLocaleDateString("pt-BR"),
             client: selectedClientData,
-            seller: selectedSellerData,
+            seller: currentSeller,
             factory: selectedFactory,
             cart,
             buyerName,
+            buyerPhone,
             paymentMethod,
+            freightType,
             description,
             total: getTotalValue(),
           });
@@ -738,8 +223,8 @@ const CreateOrderPage: React.FC = () => {
         // Limpar formulário
         setCart([]);
         setBuyerName("");
+        setBuyerPhone("");
         setDescription("");
-        setSelectedSeller(null);
         setSelectedFactory(null);
         setSelectedClient(null);
       })
@@ -752,275 +237,321 @@ const CreateOrderPage: React.FC = () => {
   return (
     <div className="orders-container">
       <Sidebar />
-      <div className="orders-content">
-        <div className="orders-header">
-          <h1>Criar Novo Pedido</h1>
+      <div className="orders-content" style={{ padding: '2.5rem' }}>
+        <div className="page-header">
+          <div>
+            <h1><FaClipboardList className="page-title-icon" /> Criar Novo Pedido</h1>
+            <p>Selecione as opções e adicione produtos ao carrinho</p>
+          </div>
         </div>
 
         <div className="orders-form">
           {/* Seção 1: Informações Básicas */}
-          <div className="form-section">
-            <h2>Informações do Pedido</h2>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Selecione o Vendedor *</label>
-                <select
-                  value={selectedSeller || ""}
-                  onChange={(e) => setSelectedSeller(Number(e.target.value))}
-                  required
-                >
-                  <option value="">Selecione o vendedor</option>
-                  {sellers.map((seller) => (
-                    <option key={seller.id} value={seller.id}>
-                      {seller.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Selecione o Cliente *</label>
-                <select
-                  value={selectedClient || ""}
-                  onChange={(e) => setSelectedClient(Number(e.target.value))}
-                  required
-                >
-                  <option value="">Selecione o cliente</option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.companyName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Selecione a Fábrica *</label>
-                <select
-                  value={selectedFactory?.id || ""}
-                  onChange={(e) => {
-                    const factory = factories.find(
-                      (f) => f.id === parseInt(e.target.value)
-                    );
-                    setSelectedFactory(factory || null);
-                  }}
-                  required
-                >
-                  <option value="">Selecione uma fábrica</option>
-                  {factories.map((factory) => (
-                    <option key={factory.id} value={factory.id}>
-                      {factory.name} ({factory.products.length} produto
-                      {factory.products.length !== 1 ? "s" : ""})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Nome do Comprador</label>
-                <input
-                  type="text"
-                  value={buyerName}
-                  onChange={(e) => setBuyerName(e.target.value)}
-                  placeholder="Nome da pessoa responsável"
-                />
-              </div>
-              <div className="form-group">
-                <label>Forma de Pagamento</label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                >
-                  <option value="PIX">PIX</option>
-                  <option value="Boleto">Boleto</option>
-                  <option value="Cartão">Cartão</option>
-                  <option value="Dinheiro">Dinheiro</option>
-                </select>
-              </div>
-            </div>
-
+          <div className="section-divider"><FaClipboardList /> Informações do Pedido</div>
+          
+          <div className="form-row">
             <div className="form-group">
-              <label>Observações</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Informações adicionais sobre o pedido..."
-                rows={3}
+              <label>Selecione o Cliente *</label>
+              <select
+                value={selectedClient || ""}
+                onChange={(e) => setSelectedClient(Number(e.target.value))}
+                required
+              >
+                <option value="">Selecione o cliente</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.companyName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Selecione a Fábrica *</label>
+              <select
+                value={selectedFactory?.id || ""}
+                onChange={(e) => {
+                  const factory = factories.find((f) => f.id === parseInt(e.target.value));
+                  setSelectedFactory(factory || null);
+                }}
+                required
+              >
+                <option value="">Selecione uma fábrica</option>
+                {factories.map((factory) => (
+                  <option key={factory.id} value={factory.id}>
+                    {factory.name} ({factory.products?.length || 0} itens)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Nome do Comprador</label>
+              <input
+                type="text"
+                value={buyerName}
+                onChange={(e) => setBuyerName(e.target.value)}
+                placeholder="Nome da pessoa responsável"
               />
             </div>
+            <div className="form-group">
+              <label>Telefone do Comprador</label>
+              <input
+                type="text"
+                value={buyerPhone}
+                onChange={(e) => setBuyerPhone(maskPhone(e.target.value))}
+                placeholder="(00) 00000-0000"
+                maxLength={15}
+              />
+            </div>
+            <div className="form-group">
+              <label>Forma de Pagamento</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <option value="PIX">PIX</option>
+                <option value="Boleto">Boleto</option>
+                <option value="Cartão">Cartão</option>
+                <option value="Dinheiro">Dinheiro</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Observações</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Informações adicionais sobre o pedido..."
+              rows={3}
+            />
           </div>
 
           {/* Seção 3: Produtos */}
           {selectedFactory && (
-            <div className="form-section">
-              <h2>Produtos - {selectedFactory.name}</h2>
-              <div className="products-search">
+            <>
+              <div className="section-divider"><FaBoxOpen /> Produtos da Fábrica: {selectedFactory.name}</div>
+              <div className="search-bar" style={{ maxWidth: '600px' }}>
+                <FaSearch className="search-bar-icon" />
                 <input
                   type="text"
                   placeholder="Buscar por nome ou código do produto..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
+                  style={{ width: '100%' }}
                 />
               </div>
+              
               <div className="products-grid">
                 {filteredProducts.map((product) => (
                   <div key={product.id} className="product-card">
-                    <div className="product-info">
-                      <h4>{product.name}</h4>
-                      <p className="product-code">Código: {product.code}</p>
-                      <p className="product-price">
-                        R$ {product.unitPrice.toFixed(2)}
-                      </p>
-                      <p className="product-colors">
-                        Cores: {product.colors.join(", ")}
-                      </p>
+                    <div className="product-name">{product.name}</div>
+                    <div className="product-code"><FaHashtag className="row-icon" /> Código: {product.code}</div>
+                    <div className="product-price">R$ {product.unitPrice.toFixed(2)}</div>
+                    <div className="product-tags" style={{ marginBottom: '1rem' }}>
+                      {product.type && <span className="tag"><FaTag /> {product.type}</span>}
                     </div>
+                    {product.observation && (
+                      <p className="product-observation" style={{ fontSize: '0.85rem', color: '#666', marginTop: '5px', marginBottom: '10px' }}>
+                        <FaStickyNote className="row-icon" /> {product.observation}
+                      </p>
+                    )}
+                    
                     <button
-                      className="btn-add-product"
+                      className="btn btn-primary btn-full"
                       onClick={() => openProductModal(product)}
                     >
-                      Adicionar ao Pedido
+                      <FaPlus /> Adicionar ao Pedido
                     </button>
                   </div>
                 ))}
+                {filteredProducts.length === 0 && (
+                  <p style={{ color: '#666', gridColumn: '1 / -1' }}>Nenhum produto encontrado na busca.</p>
+                )}
               </div>
-            </div>
+            </>
           )}
 
           {/* Seção 4: Carrinho */}
           {cart.length > 0 && (
-            <div className="form-section">
-              <h2>Itens do Pedido ({cart.length})</h2>
-              <div className="cart-items">
+            <>
+              <div className="section-divider" style={{ marginTop: '2rem' }}><FaShoppingCart /> Itens do Pedido ({cart.length})</div>
+              <div className="cart-items" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {cart.map((item, index) => (
-                  <div key={index} className="cart-item">
-                    <div className="cart-item-info">
-                      <h4>{item.product.name}</h4>
-                      <p>Código: {item.product.code}</p>
-                      <p>
-                        Preço unitário: R$ {item.product.unitPrice.toFixed(2)}
-                      </p>
+                  <div key={index} className="client-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <strong style={{ fontSize: '1.2rem' }}>{item.product.name}</strong>
+                      <span style={{ color: '#666' }}>Código: {item.product.code}</span>
+                      <span style={{ color: '#333' }}>R$ {item.product.unitPrice.toFixed(2)} / un</span>
                     </div>
-                    <div className="cart-item-controls">
-                      <div className="control-group">
-                        <label>Cor:</label>
-                        <select
-                          value={item.selectedColor}
-                          onChange={(e) =>
-                            updateCartItem(index, "color", e.target.value)
-                          }
-                        >
-                          {item.product.colors.map((color) => (
-                            <option key={color} value={color}>
-                              {color}
-                            </option>
-                          ))}
-                        </select>
+                    
+                    <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '0.8rem', marginBottom: '2px' }}>Desconto</label>
+                        <input
+                          type="text"
+                          value={item.discount || ""}
+                          onChange={(e) => updateCartItem(index, "discount", e.target.value)}
+                          style={{ height: '40px', fontSize: '0.9rem', padding: '0 10px', width: '100px' }}
+                          placeholder="Ex: 10 / 5"
+                        />
                       </div>
-                      <div className="control-group">
-                        <label>Qtd:</label>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '0.8rem', marginBottom: '2px' }}>Obs / Tipo</label>
+                        <input
+                          type="text"
+                          value={item.observation || ""}
+                          onChange={(e) => updateCartItem(index, "observation", e.target.value)}
+                          style={{ height: '40px', fontSize: '0.9rem', padding: '0 10px', width: '120px' }}
+                          placeholder="Detalhes..."
+                        />
+                      </div>
+                      
+                      <div className="form-group" style={{ marginBottom: 0, width: '80px' }}>
+                        <label style={{ fontSize: '0.8rem', marginBottom: '2px' }}>Qtd</label>
                         <input
                           type="number"
                           min="1"
                           value={item.quantity}
-                          onChange={(e) =>
-                            updateCartItem(index, "quantity", e.target.value)
-                          }
+                          onChange={(e) => updateCartItem(index, "quantity", e.target.value === "" ? "" : Number(e.target.value))}
+                          style={{ height: '40px', fontSize: '1rem', padding: '0 10px' }}
                         />
                       </div>
-                      <div className="control-group">
-                        <span className="item-total">
-                          R${" "}
-                          {(item.product.unitPrice * item.quantity).toFixed(2)}
-                        </span>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px', minWidth: '120px' }}>
+                        <strong style={{ fontSize: '1.3rem', color: 'var(--color-primary)' }}>
+                          R$ {(applyCascadeDiscount(item.product.unitPrice, item.discount) * (Number(item.quantity) || 0)).toFixed(2)}
+                        </strong>
                         <button
-                          className="btn-remove"
+                          className="btn btn-ghost"
                           onClick={() => removeFromCart(index)}
+                          style={{ color: '#c0172a', padding: '5px 10px', height: 'auto', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                         >
-                          Remover
+                          <FaTrash /> Remover
                         </button>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="cart-total">
-                <h3>Total do Pedido: R$ {getTotalValue().toFixed(2)}</h3>
+              <div className="cart-total" style={{ textAlign: 'right', marginTop: '20px', fontSize: '1.5rem', background: '#fff', padding: '20px', borderRadius: '12px', border: '2px dashed var(--color-primary-dark)' }}>
+                <strong>Total Geral: R$ {getTotalValue().toFixed(2)}</strong>
               </div>
-            </div>
+            </>
           )}
 
+          {/* Seção 5: Frete */}
+          <div className="section-divider" style={{ marginTop: '2rem' }}><FaTruck /> Opções de Frete</div>
+          <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e0e0e0', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '2rem', marginBottom: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="freight"
+                  value="CIF"
+                  checked={freightType === "CIF"}
+                  onChange={(e) => setFreightType(e.target.value)}
+                  style={{ width: '24px', height: '24px' }}
+                />
+                <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>CIF</span>
+              </label>
+              
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="freight"
+                  value="FOB"
+                  checked={freightType === "FOB"}
+                  onChange={(e) => setFreightType(e.target.value)}
+                  style={{ width: '24px', height: '24px' }}
+                />
+                <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>FOB</span>
+              </label>
+            </div>
+            <p style={{ color: '#666', fontSize: '0.9rem', margin: 0, lineHeight: 1.5 }}>
+              <strong>CIF (Cost, Insurance and Freight):</strong> O fornecedor é responsável por todos os custos e riscos até a entrega.<br/>
+              <strong>FOB (Free On Board):</strong> O comprador assume os custos e riscos do transporte a partir do embarque.
+            </p>
+          </div>
+
           {/* Botão de Finalizar */}
-          <div className="form-actions">
+          <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
             <button
-              className="btn-primary btn-large"
+              className="btn btn-success"
+              style={{ fontSize: '1.2rem', padding: '0 30px', height: '64px' }}
               onClick={handleSubmit}
               disabled={cart.length === 0}
             >
-              Criar Pedido
+              <FaCheck /> Finalizar e Gerar PDF
             </button>
           </div>
         </div>
 
         {/* Modal de Adicionar Produto */}
         {showProductModal && selectedProduct && (
-          <div className="modal-overlay">
-            <div className="modal">
+          <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowProductModal(false); }}>
+            <div className="modal" style={{ maxWidth: '500px' }}>
               <div className="modal-header">
-                <h3>Adicionar Produto</h3>
-                <button
-                  className="modal-close"
-                  onClick={() => setShowProductModal(false)}
-                >
-                  ×
-                </button>
+                <h2><FaBoxOpen className="modal-title-icon" /> Adicionar ao Pedido</h2>
+                <button className="modal-close" onClick={() => setShowProductModal(false)}><FaTimes /></button>
               </div>
-              <div className="modal-content">
-                <div className="product-details">
-                  <h4>{selectedProduct.name}</h4>
-                  <p>Código: {selectedProduct.code}</p>
-                  <p>Preço: R$ {selectedProduct.unitPrice.toFixed(2)}</p>
+              
+              <div className="modal-body">
+                <div style={{ background: 'var(--color-bg)', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
+                  <h4 style={{ fontSize: '1.2rem', margin: '0 0 5px 0' }}>{selectedProduct.name}</h4>
+                  <p style={{ margin: 0, color: '#666' }}>Código: {selectedProduct.code}</p>
+                  <p style={{ margin: '5px 0 0 0', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    R$ {selectedProduct.unitPrice.toFixed(2)} / un
+                  </p>
                 </div>
+                
                 <div className="form-group">
-                  <label>Cor:</label>
-                  <select
-                    value={selectedColor}
-                    onChange={(e) => setSelectedColor(e.target.value)}
-                  >
-                    {selectedProduct.colors.map((color) => (
-                      <option key={color} value={color}>
-                        {color}
-                      </option>
-                    ))}
-                  </select>
+                  <label>Tipo</label>
+                  <input
+                    type="text"
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                  />
                 </div>
+                
                 <div className="form-group">
-                  <label>Quantidade:</label>
+                  <label>Desconto (%) - Ex: 10 / 5 / 2</label>
+                  <input
+                    type="text"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Observação</label>
+                  <input
+                    type="text"
+                    value={observation}
+                    onChange={(e) => setObservation(e.target.value)}
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Quantidade *</label>
                   <input
                     type="number"
                     min="1"
                     value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    onChange={(e) => setQuantity(e.target.value === "" ? ("" as any) : Number(e.target.value))}
                   />
                 </div>
-                <div className="modal-total">
-                  <strong>
-                    Total: R${" "}
-                    {(selectedProduct.unitPrice * quantity).toFixed(2)}
-                  </strong>
+                
+                <div style={{ textAlign: 'right', fontSize: '1.5rem', color: 'var(--color-primary-dark)', margin: '15px 0 5px 0' }}>
+                  <strong>Total: R$ {(applyCascadeDiscount(selectedProduct.unitPrice, discount) * (Number(quantity) || 0)).toFixed(2)}</strong>
                 </div>
               </div>
-              <div className="modal-actions">
-                <button
-                  className="btn-ghost"
-                  onClick={() => setShowProductModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button className="btn-primary" onClick={addToCart}>
-                  Adicionar ao Pedido
-                </button>
+              
+              <div className="modal-footer">
+                <button className="btn btn-ghost" onClick={() => setShowProductModal(false)}>Cancelar</button>
+                <button className="btn btn-primary" onClick={addToCart}><FaPlus /> Confirmar Item</button>
               </div>
             </div>
           </div>

@@ -1,155 +1,155 @@
-/* Estilos existentes do dashboard */
-.dashboard-container {
+/* ===== DASHBOARD ===== */
+.dashboard-container { display: flex; min-height: 100vh; }
+.dashboard-content { flex: 1; padding: 2.5rem; background: var(--color-bg); }
+
+.dash-title {
+  font-size: var(--font-xl);
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: 2rem;
   display: flex;
-  min-height: 100vh;
+  align-items: center;
+  gap: 14px;
 }
 
-.dashboard-content {
-  flex: 1;
-  padding: 20px;
-  background-color: #f5f5f5;
-}
+.dash-title-icon { color: var(--color-primary); font-size: 1.6rem; }
 
-.dashboard-content h1 {
-  margin-bottom: 30px;
-  color: #333;
-}
-
-.sales-summary {
-  margin-bottom: 40px;
-}
-
-.sales-summary h2 {
-  margin-bottom: 20px;
-  color: #555;
-}
-
+/* ===== SALES CARDS ===== */
 .sales-cards {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
 .sales-card {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  flex: 1;
-  min-width: 200px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--shadow-sm);
+  border: 1.5px solid #dde3ea;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.sales-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+.sales-card-icon {
+  font-size: 1.6rem;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.sales-card h3 {
-  margin: 0 0 10px 0;
-  color: #666;
-  font-size: 14px;
-  font-weight: 500;
+.sales-card-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.sales-card p {
-  margin: 0;
-  font-size: 24px;
-  font-weight: bold;
-  color: #2196F3;
+.sales-card-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
 }
 
-/* Novos estilos para a seção de pedidos */
+/* ===== ORDERS TABLE SECTION ===== */
 .orders-section {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1.5px solid #dde3ea;
+  overflow: hidden;
 }
 
-.orders-section h2 {
-  margin: 0 0 20px 0;
-  color: #333;
+.orders-section-header {
+  padding: 1.75rem 2rem 1.25rem;
+  border-bottom: 2px solid #e8edf2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.orders-table-container {
-  overflow-x: auto;
+.orders-section-icon { font-size: 1.3rem; color: var(--color-primary); }
+
+.orders-section-header h2 {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--color-text);
 }
 
-.orders-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-
-.orders-table th,
-.orders-table td {
-  padding: 12px 8px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
+/* ===== TABELA PEDIDOS ===== */
+.orders-table { width: 100%; border-collapse: collapse; }
 
 .orders-table th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  color: #555;
-  font-size: 14px;
-}
-
-.orders-table tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
-.order-number {
-  font-family: monospace;
-  font-weight: 500;
-  color: #666;
-  font-size: 12px;
-}
-
-.products-summary {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  background: #f0f4f8;
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid #dde3ea;
   white-space: nowrap;
 }
 
-.payment-method {
-  padding: 4px 8px;
+.orders-table td {
+  padding: 16px 18px;
+  border-bottom: 1.5px solid #edf2f7;
+  font-size: var(--font-sm);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.orders-table tbody tr:hover { background: #f8fafc; }
+.orders-table tbody tr:last-child td { border-bottom: none; }
+
+.order-number {
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  background: #f0f4f8;
+  padding: 3px 8px;
   border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
-.payment-method.pix {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.payment-method.boleto {
-  background-color: #fff3e0;
-  color: #f57c00;
 }
 
 .order-total {
-  font-weight: 600;
-  color: #2e7d32;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--color-success);
 }
 
-.no-orders {
+.payment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.payment-badge.pix    { background: #e8f5e9; color: #2e7d32; }
+.payment-badge.boleto { background: #fff8e1; color: #f57f17; }
+.payment-badge.cartao { background: #e3f2fd; color: #1565c0; }
+.payment-badge.prazo  { background: #f3e5f5; color: #6a1b9a; }
+
+.no-orders-msg {
   text-align: center;
-  color: #666;
-  font-style: italic;
-  padding: 40px;
+  padding: 4rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-md);
 }
 
-/* Responsividade */
 @media (max-width: 768px) {
-  .sales-cards {
-    flex-direction: column;
-  }
-  
-  .orders-table {
-    font-size: 12px;
-  }
-  
-  .orders-table th,
-  .orders-table td {
-    padding: 8px 4px;
-  }
+  .dashboard-content { padding: 1.5rem; }
+  .orders-table { font-size: 14px; }
+  .orders-table th, .orders-table td { padding: 12px 10px; }
 }

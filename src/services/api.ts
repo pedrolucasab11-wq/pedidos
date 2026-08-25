@@ -1,7 +1,17 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://backend-pedidos-i1qd.onrender.com/',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3333',
+});
+
+// Injeta o token JWT em todas as requisições automaticamente
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export default api;
+

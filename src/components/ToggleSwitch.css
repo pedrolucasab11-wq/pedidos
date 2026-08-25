@@ -1,0 +1,65 @@
+/* ===== TOGGLE SWITCH — ATIVO / INATIVO ===== */
+/* Visual discreto: pensado para conviver ao lado de um título, sem competir com ele */
+.toggle-switch-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  background: #d7dde3;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.22);
+}
+
+.toggle-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.toggle-switch-on {
+  background: var(--color-success);
+}
+
+.toggle-switch-off {
+  background: #c7cdd3;
+}
+
+.toggle-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.toggle-switch-on .toggle-switch-knob {
+  transform: translateX(18px);
+}
+
+.toggle-switch-label {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.toggle-switch-label.label-on { color: var(--color-success); }
+.toggle-switch-label.label-off { color: var(--color-text-muted); }

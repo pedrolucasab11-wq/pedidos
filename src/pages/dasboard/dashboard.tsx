@@ -1,15 +1,24 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
+import { generateOrderPDF } from "../../utils/pdfGenerator";
+import {
+  FaChartPie,
+  FaCalendarDay,
+  FaCalendarAlt,
+  FaChartLine,
+  FaBoxes,
+  FaClipboardList,
+  FaFilePdf,
+} from "react-icons/fa";
 import "./Dashboard.css";
 
 interface OrderItem {
   quantity: number;
-  color: string;
-  product: {
-    name: string;
-    unitPrice: number;
-  };
+  product: { name: string; unitPrice: number };
+  type?: string;
+  observation?: string;
+  discount?: string;
 }
 
 interface Order {
@@ -17,190 +26,182 @@ interface Order {
   orderNumber: string;
   createdAt: string;
   buyerName: string;
+  buyerPhone?: string;
   paymentMethod: string;
   items: OrderItem[];
-  client: {
-    companyName: string;
-  };
-  factory: {
-    name: string;
-  };
-}
-
-interface SalesData {
-  totalAmountMonth: number;
-  totalAmountDay: number;
-  totalAmountYear: number;
+  client: any;
+  factory: any;
+  seller: any;
+  description?: string;
+  freightType?: string;
 }
 
 const DashboardPage: React.FC = () => {
-  const [salesData, setSalesData] = useState({
-    totalAmountMonth: 0,
-    totalAmountDay: 0,
-    totalAmountYear: 0,
-  });
-  
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totals, setTotals] = useState({ day: 0, month: 0, year: 0 });
 
   useEffect(() => {
-    axios
-      .get("https://backend-pedidos-i1qd.onrender.com/orders")
-      .then((response) => {
-        const ordersData: Order[] = response.data;
-        setOrders(ordersData);
-
-        const totals = processSalesData(ordersData);
-        setSalesData(totals);
-        setLoading(false);
+    api.get("/orders")
+      .then((res) => {
+        const data: Order[] = res.data;
+        setOrders(data);
+        setTotals(calcTotals(data));
       })
-      .catch((error) => {
-        console.error("Erro ao buscar pedidos:", error);
-        setLoading(false);
-      });
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const processSalesData = (orders: Order[]): SalesData => {
-    let totalAmountMonth = 0;
-    let totalAmountDay = 0;
-    let totalAmountYear = 0;
-
+  const calcTotals = (orders: Order[]) => {
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentDay = now.getDate();
-    const currentYear = now.getFullYear();
-
-    orders.forEach((order) => {
-      const totalAmount = order.items.reduce(
-        (sum, item) => sum + item.quantity * item.product.unitPrice,
-        0
-      );
-
-      const orderDate = new Date(order.createdAt);
-      const orderMonth = orderDate.getMonth();
-      const orderDay = orderDate.getDate();
-      const orderYear = orderDate.getFullYear();
-
-      console.log(
-        `Pedido ${
-          order.id
-        }: R$${totalAmount}, Data: ${orderDate.toLocaleDateString()}`
-      );
-
-      if (orderYear === currentYear) {
-        totalAmountYear += totalAmount;
-
-        if (orderMonth === currentMonth) {
-          totalAmountMonth += totalAmount;
-
-          if (orderDay === currentDay) {
-            totalAmountDay += totalAmount;
-          }
+    let day = 0, month = 0, year = 0;
+    orders.forEach((o) => {
+      const total = o.items.reduce((s, i) => s + i.quantity * i.product.unitPrice, 0);
+      const d = new Date(o.createdAt);
+      if (d.getFullYear() === now.getFullYear()) {
+        year += total;
+        if (d.getMonth() === now.getMonth()) {
+          month += total;
+          if (d.getDate() === now.getDate()) day += total;
         }
       }
     });
-
-    return {
-      totalAmountMonth,
-      totalAmountDay,
-      totalAmountYear,
-    };
+    return { day, month, year };
   };
 
-  const calculateOrderTotal = (items: OrderItem[]): number => {
-    return items.reduce(
-      (sum, item) => sum + item.quantity * item.product.unitPrice,
-      0
-    );
-  };
+  const calcOrderTotal = (items: OrderItem[]) =>
+    items.reduce((s, i) => s + i.quantity * i.product.unitPrice, 0);
 
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const fmt = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const fmtDate = (d: string) =>
+    new Date(d).toLocaleDateString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
     });
+
+  const getOrderSummary = (items: OrderItem[]) =>
+    items.length === 1
+      ? `${items[0].quantity}x ${items[0].product.name}`
+      : `${items.length} produtos (${items.reduce((s, i) => s + i.quantity, 0)} itens)`;
+
+  const getPaymentClass = (method: string) => {
+    const m = method.toLowerCase();
+    if (m.includes("pix")) return "pix";
+    if (m.includes("boleto")) return "boleto";
+    if (m.includes("cartão") || m.includes("cartao")) return "cartao";
+    return "prazo";
   };
 
-  const getOrderSummary = (items: OrderItem[]): string => {
-    if (items.length === 1) {
-      return `${items[0].quantity}x ${items[0].product.name}`;
-    }
-    return `${items.length} produtos (${items.reduce((sum, item) => sum + item.quantity, 0)} itens)`;
+  const handleViewPDF = (order: Order) => {
+    generateOrderPDF({
+      orderNumber: order.orderNumber,
+      date: new Date(order.createdAt).toLocaleDateString("pt-BR"),
+      client: order.client,
+      seller: order.seller,
+      factory: order.factory,
+      cart: order.items.map((i) => ({
+        product: i.product as any,
+        type: i.type,
+        observation: i.observation,
+        discount: i.discount,
+        quantity: i.quantity,
+      })),
+      buyerName: order.buyerName,
+      buyerPhone: order.buyerPhone,
+      paymentMethod: order.paymentMethod,
+      freightType: order.freightType,
+      description: order.description || "",
+      total: calcOrderTotal(order.items),
+    });
   };
 
   return (
     <div className="dashboard-container">
       <Sidebar />
       <div className="dashboard-content">
-        <h1>Dashboard</h1>
-        
-        <div className="sales-summary">
-          <h2>Vendas Totais</h2>
-          <div className="sales-cards">
-            <div className="sales-card">
-              <h3>Vendas do Mês</h3>
-              <p>R${salesData.totalAmountMonth.toFixed(2)}</p>
-            </div>
-            <div className="sales-card">
-              <h3>Vendas do Dia</h3>
-              <p>R${salesData.totalAmountDay.toFixed(2)}</p>
-            </div>
-            <div className="sales-card">
-              <h3>Vendas do Ano</h3>
-              <p>R${salesData.totalAmountYear.toFixed(2)}</p>
-            </div>
+        <h1 className="dash-title"><FaChartPie className="dash-title-icon" /> Dashboard</h1>
+
+        {/* Cards de vendas */}
+        <div className="sales-cards">
+          <div className="sales-card">
+            <div className="sales-card-icon"><FaCalendarDay /></div>
+            <div className="sales-card-label">Vendas de Hoje</div>
+            <div className="sales-card-value">{fmt(totals.day)}</div>
+          </div>
+          <div className="sales-card">
+            <div className="sales-card-icon"><FaCalendarAlt /></div>
+            <div className="sales-card-label">Vendas do Mês</div>
+            <div className="sales-card-value">{fmt(totals.month)}</div>
+          </div>
+          <div className="sales-card">
+            <div className="sales-card-icon"><FaChartLine /></div>
+            <div className="sales-card-label">Vendas do Ano</div>
+            <div className="sales-card-value">{fmt(totals.year)}</div>
+          </div>
+          <div className="sales-card">
+            <div className="sales-card-icon"><FaBoxes /></div>
+            <div className="sales-card-label">Total de Pedidos</div>
+            <div className="sales-card-value">{orders.length}</div>
           </div>
         </div>
 
+        {/* Tabela de pedidos */}
         <div className="orders-section">
-          <h2>Pedidos Recentes</h2>
+          <div className="orders-section-header">
+            <FaClipboardList className="orders-section-icon" />
+            <h2>Pedidos Recentes</h2>
+          </div>
+
           {loading ? (
-            <p>Carregando pedidos...</p>
+            <p className="no-orders-msg">Carregando pedidos...</p>
+          ) : orders.length === 0 ? (
+            <p className="no-orders-msg">Nenhum pedido cadastrado ainda.</p>
           ) : (
-            <div className="orders-table-container">
+            <div style={{ overflowX: "auto" }}>
               <table className="orders-table">
                 <thead>
                   <tr>
-                    <th>Número do Pedido</th>
+                    <th>Nº do Pedido</th>
                     <th>Data</th>
                     <th>Cliente</th>
                     <th>Comprador</th>
                     <th>Fábrica</th>
                     <th>Produtos</th>
-                    <th>Pagamento</th>
+                    <th>Status PGTO</th>
                     <th>Total</th>
+                    <th style={{ textAlign: 'center' }}>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orders
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                    .map((order) => (
-                    <tr key={order.id}>
-                      <td className="order-number">{order.orderNumber}</td>
-                      <td>{formatDate(order.createdAt)}</td>
-                      <td>{order.client.companyName}</td>
-                      <td>{order.buyerName || '-'}</td>
-                      <td>{order.factory.name}</td>
-                      <td className="products-summary">{getOrderSummary(order.items)}</td>
+                  {orders.map((o) => (
+                    <tr key={o.id}>
+                      <td><span className="order-number">{o.orderNumber}</span></td>
+                      <td>{fmtDate(o.createdAt)}</td>
+                      <td><strong>{o.client?.companyName}</strong></td>
+                      <td>{o.buyerName || "—"}</td>
+                      <td>{o.factory.name}</td>
+                      <td>{getOrderSummary(o.items)}</td>
                       <td>
-                        <span className={`payment-method ${order.paymentMethod.toLowerCase()}`}>
-                          {order.paymentMethod}
+                        <span className={`payment-badge ${getPaymentClass(o.paymentMethod)}`}>
+                          {o.paymentMethod}
                         </span>
                       </td>
-                      <td className="order-total">
-                        R${calculateOrderTotal(order.items).toFixed(2)}
+                      <td className="order-total">{fmt(calcOrderTotal(o.items))}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          className="btn btn-ghost btn-icon-sm"
+                          onClick={() => handleViewPDF(o)}
+                          title="Ver PDF"
+                        >
+                          <FaFilePdf /> PDF
+                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              
-              {orders.length === 0 && (
-                <p className="no-orders">Nenhum pedido encontrado.</p>
-              )}
             </div>
           )}
         </div>

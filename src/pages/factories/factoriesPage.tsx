@@ -1,48 +1,48 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
+import ToggleSwitch from "../../components/ToggleSwitch";
 import "./Factories.css";
 import { useNavigate } from "react-router-dom";
+import {
+  FaIndustry,
+  FaPlus,
+  FaBuilding,
+  FaFileAlt,
+  FaEnvelope,
+  FaPhone,
+  FaMapMarkerAlt,
+  FaEye,
+} from "react-icons/fa";
 
 interface Product {
   id: number;
   name: string;
   code: string;
-  colors: string[];
   unitPrice: number;
   factoryId: number;
 }
 
 interface Factory {
   id: number;
-  logo: string;
   name: string;
+  razaoSocial?: string;
+  cnpj?: string;
   email: string;
   phone: string;
+  cidade?: string;
+  estado?: string;
+  active: boolean;
   products: Product[];
-}
-
-interface NewFactory {
-  logo: string;
-  name: string;
-  email: string;
-  phone: string;
 }
 
 const FactoriesPage: React.FC = () => {
   const navigate = useNavigate();
   const [factories, setFactories] = useState<Factory[]>([]);
-  const [showFactoryModal, setShowFactoryModal] = useState(false);
-  const [newFactory, setNewFactory] = useState<NewFactory>({
-    logo: "",
-    name: "",
-    email: "",
-    phone: "",
-  });
 
   const fetchFactories = () => {
-    axios
-      .get("https://backend-pedidos-i1qd.onrender.com/factories")
+    api
+      .get("/factories")
       .then((res) => setFactories(res.data))
       .catch((err) => console.error("Erro ao buscar fábricas:", err));
   };
@@ -51,51 +51,21 @@ const FactoriesPage: React.FC = () => {
     fetchFactories();
   }, []);
 
-  // Adicionar listener para ESC
-  useEffect(() => {
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        if (showFactoryModal) {
-          setShowFactoryModal(false);
-        }
-      }
-    };
+  const handleToggleActive = (factory: Factory, nextActive: boolean) => {
+    // Atualização otimista para resposta visual imediata
+    setFactories((prev) =>
+      prev.map((f) => (f.id === factory.id ? { ...f, active: nextActive } : f))
+    );
 
-    document.addEventListener("keydown", handleEsc);
-    return () => {
-      document.removeEventListener("keydown", handleEsc);
-    };
-  }, [showFactoryModal]);
-
-  const handleFactoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewFactory((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleFactorySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validação extra
-    if (
-      !newFactory.name.trim() ||
-      !newFactory.email.trim() ||
-      !newFactory.phone.trim()
-    ) {
-      alert("Por favor, preencha todos os campos obrigatórios.");
-      return;
-    }
-
-    axios
-      .post("https://backend-pedidos-i1qd.onrender.com/factories", newFactory)
-      .then(() => {
-        alert("Fábrica cadastrada com sucesso!");
-        setShowFactoryModal(false);
-        setNewFactory({ logo: "", name: "", email: "", phone: "" });
-        fetchFactories();
-      })
+    api
+      .patch(`/factories/${factory.id}/status`, { active: nextActive })
       .catch((err) => {
-        console.error("Erro ao cadastrar fábrica:", err);
-        alert("Erro ao cadastrar fábrica.");
+        console.error("Erro ao atualizar status da fábrica:", err);
+        alert("Não foi possível atualizar o status da fábrica. Tente novamente.");
+        // Desfaz a atualização otimista em caso de erro
+        setFactories((prev) =>
+          prev.map((f) => (f.id === factory.id ? { ...f, active: factory.active } : f))
+        );
       });
   };
 
@@ -103,139 +73,66 @@ const FactoriesPage: React.FC = () => {
     <div className="factories-page">
       <Sidebar />
       <main className="factories-main">
-        <div className="factories-header">
-          <div className="header-content">
-            <div>
-              <h1 className="page-title">Fábricas</h1>
-              <p className="page-subtitle">Gerencie suas fábricas parceiras</p>
-            </div>
-            <button
-              className="btn-add-factory"
-              onClick={() => setShowFactoryModal(true)}
-            >
-              + Nova Fábrica
-            </button>
+        <div className="page-header">
+          <div>
+            <h1><FaIndustry className="page-title-icon" /> Fábricas</h1>
+            <p>Gerencie suas fábricas parceiras</p>
           </div>
+          <button className="btn btn-success" onClick={() => navigate("/fabricas/novo")}>
+            <FaPlus /> Nova Fábrica
+          </button>
         </div>
 
-        <div className="factories-grid">
-          {factories.map((factory) => (
-            <div key={factory.id} className="factory-card">
-              <div className="factory-card-header">
-                <div className="factory-logo-container">
-                  <img
-                    src={factory.logo}
-                    alt={`Logo ${factory.name}`}
-                    className="factory-logo"
-                  />
-                </div>
-                <div className="factory-info">
-                  <h3 className="factory-name">{factory.name}</h3>
-                  <div className="factory-contact">
-                    <span className="factory-email">{factory.email}</span>
-                    <span className="factory-phone">{factory.phone}</span>
+        {factories.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon"><FaIndustry /></div>
+            <h3>Nenhuma fábrica cadastrada</h3>
+            <p>Clique em "Nova Fábrica" para começar</p>
+          </div>
+        ) : (
+          <div className="factories-grid">
+            {factories.map((factory) => (
+              <div
+                key={factory.id}
+                className={`factory-card ${!factory.active ? "factory-card-inactive" : ""}`}
+              >
+                <div className="factory-card-top">
+                  <div>
+                    <div className="factory-name-row">
+                      <span className="factory-name">{factory.name}</span>
+                      <ToggleSwitch
+                        checked={factory.active}
+                        onChange={(next) => handleToggleActive(factory, next)}
+                        id={`factory-toggle-${factory.id}`}
+                      />
+                    </div>
+                    {factory.razaoSocial && (
+                      <div className="factory-contact-row"><FaBuilding className="row-icon" /> {factory.razaoSocial}</div>
+                    )}
+                    {factory.cnpj && (
+                      <div className="factory-contact-row"><FaFileAlt className="row-icon" /> {factory.cnpj}</div>
+                    )}
+                    <div className="factory-contact-row"><FaEnvelope className="row-icon" /> {factory.email}</div>
+                    <div className="factory-contact-row"><FaPhone className="row-icon" /> {factory.phone}</div>
+                    {(factory.cidade || factory.estado) && (
+                      <div className="factory-contact-row">
+                        <FaMapMarkerAlt className="row-icon" /> {[factory.cidade, factory.estado].filter(Boolean).join(" - ")}
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-
-              <div className="factory-stats">
-                <div className="stat-item">
-                  <span className="stat-number">
-                    {factory.products?.length || 0}
-                  </span>
-                  <span className="stat-label">Produtos</span>
+                <div className="factory-stats">
+                  <strong>{factory.products?.length || 0}</strong>
+                  <span>produtos cadastrados</span>
                 </div>
-              </div>
-
-              <div className="factory-card-footer">
                 <button
-                  className="btn-view-factory"
+                  className="btn btn-primary btn-full"
                   onClick={() => navigate(`/factories/${factory.id}`)}
                 >
-                  Ver Fábrica
+                  <FaEye /> Ver Detalhes
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {factories.length === 0 && (
-          <div className="empty-state">
-            <p>Nenhuma fábrica encontrada</p>
-          </div>
-        )}
-
-        {/* Modal Fábrica */}
-        {showFactoryModal && (
-          <div className="modal-overlay">
-            <div className="modal">
-              <div className="modal-header">
-                <h2>Nova Fábrica</h2>
-                <button
-                  className="modal-close"
-                  onClick={() => setShowFactoryModal(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <form onSubmit={handleFactorySubmit} className="modal-form">
-                <div className="form-group">
-                  <label>Logo (URL)</label>
-                  <input
-                    type="url"
-                    name="logo"
-                    value={newFactory.logo}
-                    onChange={handleFactoryChange}
-                    placeholder="https://exemplo.com/logo.png"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Nome *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={newFactory.name}
-                    onChange={handleFactoryChange}
-                    placeholder="Nome da fábrica"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Email *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={newFactory.email}
-                    onChange={handleFactoryChange}
-                    placeholder="contato@fabrica.com"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Telefone *</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={newFactory.phone}
-                    onChange={handleFactoryChange}
-                    placeholder="(11) 99999-9999"
-                    required
-                  />
-                </div>
-                <div className="modal-actions">
-                  <button
-                    type="button"
-                    className="btn-cancel"
-                    onClick={() => setShowFactoryModal(false)}
-                  >
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn-save">
-                    Salvar Fábrica
-                  </button>
-                </div>
-              </form>
-            </div>
+            ))}
           </div>
         )}
       </main>

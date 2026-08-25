@@ -1,6 +1,20 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
+import ToggleSwitch from "../../components/ToggleSwitch";
+import { maskCNPJ, maskPhone, maskStateInscr, maskCEP, validateCNPJ } from "../../utils/masks";
+import {
+  FaUsers,
+  FaPlus,
+  FaBuilding,
+  FaEnvelope,
+  FaPhone,
+  FaMapMarkerAlt,
+  FaTimes,
+  FaCheck,
+  FaSpinner,
+} from "react-icons/fa";
 import "./Clients.css";
 
 interface Client {
@@ -11,6 +25,7 @@ interface Client {
   email: string;
   address: string;
   phone: string;
+  active: boolean;
 }
 
 interface NewClient {
@@ -67,8 +82,8 @@ const ClientsPage: React.FC = () => {
   const [isLoadingCEP, setIsLoadingCEP] = useState(false);
 
   const fetchClients = () => {
-    axios
-      .get("https://backend-pedidos-i1qd.onrender.com/clients")
+    api
+      .get("/clients")
       .then((res) => setClients(res.data))
       .catch((err) => console.error("Erro ao buscar clientes:", err));
   };
@@ -77,8 +92,29 @@ const ClientsPage: React.FC = () => {
     fetchClients();
   }, []);
 
+  const handleToggleActive = (client: Client, nextActive: boolean) => {
+    // Atualização otimista para resposta visual imediata
+    setClients((prev) =>
+      prev.map((c) => (c.id === client.id ? { ...c, active: nextActive } : c))
+    );
+
+    api
+      .patch(`/clients/${client.id}/status`, { active: nextActive })
+      .catch((err) => {
+        console.error("Erro ao atualizar status do cliente:", err);
+        alert("Não foi possível atualizar o status do cliente. Tente novamente.");
+        setClients((prev) =>
+          prev.map((c) => (c.id === client.id ? { ...c, active: client.active } : c))
+        );
+      });
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    if (name === "cnpj") value = maskCNPJ(value);
+    if (name === "phone") value = maskPhone(value);
+    if (name === "stateInscr") value = maskStateInscr(value);
+    
     setNewClient((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -87,21 +123,17 @@ const ClientsPage: React.FC = () => {
     setAddressForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const formatCEP = (cep: string) => {
-    return cep.replace(/\D/g, "").replace(/(\d{5})(\d{3})/, "$1-$2");
-  };
-
   const handleCEPChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const cep = e.target.value.replace(/\D/g, "");
-    const formattedCEP = formatCEP(cep);
+    const rawCEP = e.target.value.replace(/\D/g, "");
+    const formattedCEP = maskCEP(e.target.value);
 
     setAddressForm((prev) => ({ ...prev, cep: formattedCEP }));
 
-    if (cep.length === 8) {
+    if (rawCEP.length === 8) {
       setIsLoadingCEP(true);
       try {
         const response = await axios.get<ViaCEPResponse>(
-          `https://viacep.com.br/ws/${cep}/json/`
+          `https://viacep.com.br/ws/${rawCEP}/json/`
         );
 
         if (response.data && !response.data.erro) {
@@ -140,38 +172,6 @@ const ClientsPage: React.FC = () => {
     return fullAddress;
   };
 
-  const validateCNPJ = (cnpj: string) => {
-    cnpj = cnpj.replace(/[^\d]+/g, "");
-    if (cnpj.length !== 14) return false;
-
-    let size = cnpj.length - 2;
-    let numbers = cnpj.substring(0, size);
-    const digits = cnpj.substring(size);
-    let sum = 0;
-    let pos = size - 7;
-
-    for (let i = size; i >= 1; i--) {
-      sum += +numbers.charAt(size - i) * pos--;
-      if (pos < 2) pos = 9;
-    }
-
-    let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-    if (result !== +digits.charAt(0)) return false;
-
-    size = size + 1;
-    numbers = cnpj.substring(0, size);
-    sum = 0;
-    pos = size - 7;
-
-    for (let i = size; i >= 1; i--) {
-      sum += +numbers.charAt(size - i) * pos--;
-      if (pos < 2) pos = 9;
-    }
-
-    result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-    return result === +digits.charAt(1);
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -196,8 +196,8 @@ const ClientsPage: React.FC = () => {
     const fullAddress = buildFullAddress();
     const clientData = { ...newClient, address: fullAddress };
 
-    axios
-      .post("https://backend-pedidos-i1qd.onrender.com/clients", clientData)
+    api
+      .post("/clients", clientData)
       .then(() => {
         alert("Cliente cadastrado com sucesso!");
         setShowModal(false);
@@ -230,215 +230,164 @@ const ClientsPage: React.FC = () => {
     <div className="clients-container">
       <Sidebar />
       <div className="clients-content">
-        <div className="clients-header">
-          <h1>Clientes</h1>
-          <button className="btn-primary" onClick={() => setShowModal(true)}>
-            + Novo Cliente
+
+        {/* Header */}
+        <div className="page-header">
+          <div>
+            <h1><FaUsers className="page-title-icon" /> Clientes</h1>
+            <p>{clients.length} cliente(s) cadastrado(s)</p>
+          </div>
+          <button className="btn btn-success" onClick={() => setShowModal(true)}>
+            <FaPlus /> Novo Cliente
           </button>
         </div>
 
-        <div className="clients-grid">
-          {clients.map((client) => (
-            <div key={client.id} className="client-card">
-              <h3>{client.companyName}</h3>
-              <p>
-                <strong>CNPJ:</strong> {client.cnpj}
-              </p>
-              <p>
-                <strong>Inscrição Estadual:</strong> {client.stateInscr}
-              </p>
-              <p>
-                <strong>Email:</strong> {client.email}
-              </p>
-              <p>
-                <strong>Endereço:</strong> {client.address}
-              </p>
-              <p>
-                <strong>Telefone:</strong> {client.phone}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {showModal && (
-          <div className="modal-overlay">
-            <div className="modal">
-              <div className="modal-header">
-                <h2>Novo Cliente</h2>
-                <button
-                  className="modal-close"
-                  onClick={() => setShowModal(false)}
-                >
-                  ×
-                </button>
+        {/* Grid de clientes */}
+        {clients.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon"><FaUsers /></div>
+            <h3>Nenhum cliente cadastrado</h3>
+            <p>Clique em "Novo Cliente" para começar</p>
+          </div>
+        ) : (
+          <div className="clients-grid">
+            {clients.map((client) => (
+              <div key={client.id} className={`client-card ${!client.active ? "client-card-inactive" : ""}`}>
+                <div className="client-card-name-row">
+                  <span className="client-card-name">
+                    <FaBuilding className="card-icon" /> {client.companyName}
+                  </span>
+                  <ToggleSwitch
+                    checked={client.active}
+                    onChange={(next) => handleToggleActive(client, next)}
+                    id={`client-toggle-${client.id}`}
+                  />
+                </div>
+                <div className="client-card-info">
+                  <div className="client-info-row">
+                    <strong>CNPJ</strong> {client.cnpj}
+                  </div>
+                  <div className="client-info-row">
+                    <strong>IE</strong> {client.stateInscr || '—'}
+                  </div>
+                  <div className="client-info-row">
+                    <FaEnvelope className="row-icon" /> {client.email}
+                  </div>
+                  <div className="client-info-row">
+                    <FaPhone className="row-icon" /> {client.phone}
+                  </div>
+                  <div className="client-info-row" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span><FaMapMarkerAlt className="row-icon" /> {client.address}</span>
+                  </div>
+                </div>
               </div>
-              <form onSubmit={handleSubmit} className="modal-form">
-                <div className="form-section">
-                  <h3>Dados da Empresa</h3>
+            ))}
+          </div>
+        )}
+
+        {/* Modal Novo Cliente */}
+        {showModal && (
+          <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
+            <div className="modal" style={{ maxWidth: '640px' }}>
+              <div className="modal-header">
+                <h2><FaUsers className="modal-title-icon" /> Novo Cliente</h2>
+                <button className="modal-close" onClick={() => setShowModal(false)}><FaTimes /></button>
+              </div>
+
+              <form onSubmit={handleSubmit}>
+                <div className="modal-body">
+
+                  {/* Dados da Empresa */}
+                  <div className="section-divider"><FaBuilding /> Dados da Empresa</div>
                   <div className="form-group">
-                    <label>Nome da Empresa</label>
-                    <input
-                      type="text"
-                      name="companyName"
-                      value={newClient.companyName}
-                      onChange={handleChange}
-                      required
-                    />
+                    <label htmlFor="c-name">Nome da Empresa *</label>
+                    <input id="c-name" type="text" name="companyName" value={newClient.companyName}
+                      onChange={handleChange} placeholder="Ex: Lojas Silva Ltda." required />
                   </div>
                   <div className="form-row">
                     <div className="form-group">
-                      <label>CNPJ</label>
-                      <input
-                        type="text"
-                        name="cnpj"
-                        value={newClient.cnpj}
-                        onChange={handleChange}
-                        required
-                      />
+                      <label htmlFor="c-cnpj">CNPJ *</label>
+                      <input id="c-cnpj" type="text" name="cnpj" value={newClient.cnpj}
+                        onChange={handleChange} placeholder="00.000.000/0000-00" required />
                     </div>
                     <div className="form-group">
-                      <label>Inscrição Estadual</label>
-                      <input
-                        type="text"
-                        name="stateInscr"
-                        value={newClient.stateInscr}
-                        onChange={handleChange}
-                        required
-                      />
+                      <label htmlFor="c-ie">Inscrição Estadual</label>
+                      <input id="c-ie" type="text" name="stateInscr" value={newClient.stateInscr}
+                        onChange={handleChange} placeholder="000.000.000.000" />
                     </div>
                   </div>
-                </div>
 
-                <div className="form-section">
-                  <h3>Contato</h3>
+                  {/* Contato */}
+                  <div className="section-divider"><FaPhone /> Contato</div>
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Email</label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={newClient.email}
-                        onChange={handleChange}
-                        required
-                      />
+                      <label htmlFor="c-email">E-mail *</label>
+                      <input id="c-email" type="email" name="email" value={newClient.email}
+                        onChange={handleChange} placeholder="contato@empresa.com" required />
                     </div>
                     <div className="form-group">
-                      <label>Telefone</label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={newClient.phone}
-                        onChange={handleChange}
-                        required
-                      />
+                      <label htmlFor="c-phone">Telefone *</label>
+                      <input id="c-phone" type="tel" name="phone" value={newClient.phone}
+                        onChange={handleChange} placeholder="(11) 99999-9999" required />
                     </div>
                   </div>
-                </div>
 
-                <div className="form-section">
-                  <h3>Endereço</h3>
+                  {/* Endereço */}
+                  <div className="section-divider"><FaMapMarkerAlt /> Endereço</div>
                   <div className="form-group">
-                    <label>CEP</label>
-                    <input
-                      type="text"
-                      name="cep"
-                      value={addressForm.cep}
-                      onChange={handleCEPChange}
-                      placeholder="00000-000"
-                      maxLength={9}
-                      required
-                    />
-                    {isLoadingCEP && <small>Buscando CEP...</small>}
+                    <label htmlFor="c-cep">CEP *</label>
+                    <input id="c-cep" type="text" name="cep" value={addressForm.cep}
+                      onChange={handleCEPChange} placeholder="00000-000" maxLength={9} required />
+                    {isLoadingCEP && <small className="cep-loading"><FaSpinner className="spin-icon" /> Buscando CEP...</small>}
                   </div>
-
                   <div className="form-row">
-                    <div className="form-group flex-2">
-                      <label>Rua/Logradouro</label>
-                      <input
-                        type="text"
-                        name="street"
-                        value={addressForm.street}
-                        onChange={handleAddressChange}
-                        required
-                      />
+                    <div className="form-group" style={{ flex: 2 }}>
+                      <label htmlFor="c-street">Rua / Logradouro *</label>
+                      <input id="c-street" type="text" name="street" value={addressForm.street}
+                        onChange={handleAddressChange} placeholder="Nome da rua" required />
                     </div>
                     <div className="form-group">
-                      <label>Número</label>
-                      <input
-                        type="text"
-                        name="number"
-                        value={addressForm.number}
-                        onChange={handleAddressChange}
-                        required
-                      />
+                      <label htmlFor="c-number">Número *</label>
+                      <input id="c-number" type="text" name="number" value={addressForm.number}
+                        onChange={handleAddressChange} placeholder="123" required />
                     </div>
                   </div>
-
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Bairro</label>
-                      <input
-                        type="text"
-                        name="neighborhood"
-                        value={addressForm.neighborhood}
-                        onChange={handleAddressChange}
-                        required
-                      />
+                      <label htmlFor="c-neighborhood">Bairro *</label>
+                      <input id="c-neighborhood" type="text" name="neighborhood" value={addressForm.neighborhood}
+                        onChange={handleAddressChange} placeholder="Nome do bairro" required />
                     </div>
                     <div className="form-group">
-                      <label>Complemento</label>
-                      <input
-                        type="text"
-                        name="complement"
-                        value={addressForm.complement}
-                        onChange={handleAddressChange}
-                        placeholder="Apto, Sala, etc."
-                      />
+                      <label htmlFor="c-complement">Complemento</label>
+                      <input id="c-complement" type="text" name="complement" value={addressForm.complement}
+                        onChange={handleAddressChange} placeholder="Apto, Sala..." />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group" style={{ flex: 2 }}>
+                      <label htmlFor="c-city">Cidade *</label>
+                      <input id="c-city" type="text" name="city" value={addressForm.city}
+                        onChange={handleAddressChange} placeholder="Nome da cidade" required />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="c-state">Estado *</label>
+                      <input id="c-state" type="text" name="state" value={addressForm.state}
+                        onChange={handleAddressChange} placeholder="SP" maxLength={2} required />
                     </div>
                   </div>
 
-                  <div className="form-row">
-                    <div className="form-group flex-2">
-                      <label>Cidade</label>
-                      <input
-                        type="text"
-                        name="city"
-                        value={addressForm.city}
-                        onChange={handleAddressChange}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Estado</label>
-                      <input
-                        type="text"
-                        name="state"
-                        value={addressForm.state}
-                        onChange={handleAddressChange}
-                        maxLength={2}
-                        placeholder="SP"
-                        required
-                      />
-                    </div>
-                  </div>
                 </div>
 
-                <div className="modal-actions">
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    onClick={() => setShowModal(false)}
-                  >
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    Salvar
-                  </button>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
+                  <button type="submit" className="btn btn-success"><FaCheck /> Salvar Cliente</button>
                 </div>
               </form>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );

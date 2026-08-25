@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import {
+  FaChartPie,
+  FaClipboardList,
+  FaIndustry,
+  FaUsers,
+  FaSignOutAlt,
+} from "react-icons/fa";
+import api from "../services/api";
 import "./Sidebar.css";
 
 interface Seller {
@@ -13,40 +21,52 @@ function Sidebar() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const sellerId = localStorage.getItem("sellerId");
-
-    if (sellerId) {
-      fetch(`https://backend-pedidos-i1qd.onrender.com/sellers/${sellerId}`)
-        .then((res) => res.json())
-        .then((data) => setSeller(data))
-        .catch((err) => console.error("Erro ao buscar vendedor:", err));
-    }
+    api
+      .get("/auth/me")
+      .then((res) => setSeller(res.data))
+      .catch((err) => console.error("Erro ao buscar vendedor:", err));
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("sellerId");
+    localStorage.removeItem("token");
     navigate("/");
   };
-
-  if (!seller) {
-    return <div className="sidebar">Carregando...</div>;
-  }
 
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <img src={seller.logo} alt="Logo" className="seller-logo" />
-        <h3>{seller.name}</h3>
+        {seller ? (
+          <>
+            <img src={seller.logo} alt="Logo" className="seller-logo" />
+            <h3>{seller.name}</h3>
+            <span>Representante</span>
+          </>
+        ) : (
+          <h3>Carregando...</h3>
+        )}
       </div>
+
       <nav className="sidebar-nav">
-        <NavLink to="/dashboard">Dashboard</NavLink>
-        <NavLink to="/pedidos">Fazer Pedido</NavLink>
-        <NavLink to="/fabricas">Fábricas</NavLink>
-        <NavLink to="/clientes">Clientes</NavLink>
-        <button onClick={handleLogout} className="logout-button">
-          Sair
-        </button>
+        <NavLink to="/dashboard" className={({ isActive }) => isActive ? "active" : ""}>
+          <span className="nav-icon"><FaChartPie /></span> Dashboard
+        </NavLink>
+        <NavLink to="/pedidos" className={({ isActive }) => isActive ? "active" : ""}>
+          <span className="nav-icon"><FaClipboardList /></span> Fazer Pedido
+        </NavLink>
+        <NavLink to="/fabricas" className={({ isActive }) => isActive ? "active" : ""}>
+          <span className="nav-icon"><FaIndustry /></span> Fábricas
+        </NavLink>
+        <NavLink to="/clientes" className={({ isActive }) => isActive ? "active" : ""}>
+          <span className="nav-icon"><FaUsers /></span> Clientes
+        </NavLink>
       </nav>
+
+      <div className="sidebar-footer">
+        <button onClick={handleLogout} className="logout-button">
+          <span className="nav-icon"><FaSignOutAlt /></span> Sair
+        </button>
+      </div>
     </div>
   );
 }
