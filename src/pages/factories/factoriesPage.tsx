@@ -14,6 +14,7 @@ import {
   FaMapMarkerAlt,
   FaEye,
 } from "react-icons/fa";
+import { notify } from "../../utils/notify";
 
 interface Product {
   id: number;
@@ -44,7 +45,10 @@ const FactoriesPage: React.FC = () => {
     api
       .get("/factories")
       .then((res) => setFactories(res.data))
-      .catch((err) => console.error("Erro ao buscar fábricas:", err));
+      .catch((err) => {
+        console.error("Erro ao buscar fábricas:", err);
+        notify.apiError(err, "Não foi possível carregar a lista de fábricas.");
+      });
   };
 
   useEffect(() => {
@@ -61,7 +65,7 @@ const FactoriesPage: React.FC = () => {
       .patch(`/factories/${factory.id}/status`, { active: nextActive })
       .catch((err) => {
         console.error("Erro ao atualizar status da fábrica:", err);
-        alert("Não foi possível atualizar o status da fábrica. Tente novamente.");
+        notify.apiError(err, "Não foi possível atualizar o status da fábrica. Tente novamente.");
         // Desfaz a atualização otimista em caso de erro
         setFactories((prev) =>
           prev.map((f) => (f.id === factory.id ? { ...f, active: factory.active } : f))

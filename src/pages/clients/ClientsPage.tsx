@@ -5,6 +5,7 @@ import Sidebar from "../../components/Sidebar";
 import ToggleSwitch from "../../components/ToggleSwitch";
 import { maskCNPJ, maskPhone, maskStateInscr, maskCEP, validateCNPJ } from "../../utils/masks";
 import { lookupCNPJ } from "../../services/cnpjLookup";
+import { notify } from "../../utils/notify";
 import {
   FaUsers,
   FaPlus,
@@ -89,7 +90,10 @@ const ClientsPage: React.FC = () => {
     api
       .get("/clients")
       .then((res) => setClients(res.data))
-      .catch((err) => console.error("Erro ao buscar clientes:", err));
+      .catch((err) => {
+        console.error("Erro ao buscar clientes:", err);
+        notify.apiError(err, "Não foi possível carregar a lista de clientes.");
+      });
   };
 
   useEffect(() => {
@@ -106,7 +110,7 @@ const ClientsPage: React.FC = () => {
       .patch(`/clients/${client.id}/status`, { active: nextActive })
       .catch((err) => {
         console.error("Erro ao atualizar status do cliente:", err);
-        alert("Não foi possível atualizar o status do cliente. Tente novamente.");
+        notify.apiError(err, "Não foi possível atualizar o status do cliente. Tente novamente.");
         setClients((prev) =>
           prev.map((c) => (c.id === client.id ? { ...c, active: client.active } : c))
         );
@@ -130,7 +134,7 @@ const ClientsPage: React.FC = () => {
 
     if (rawCNPJ.length === 14) {
       if (!validateCNPJ(rawCNPJ)) {
-        alert("CNPJ inválido! Verifique os números digitados.");
+        notify.warning("CNPJ inválido! Verifique os números digitados.");
         return;
       }
 
@@ -157,7 +161,7 @@ const ClientsPage: React.FC = () => {
         setCnpjAutoFilled(true);
       } catch (error) {
         console.error("Erro ao consultar CNPJ:", error);
-        alert(
+        notify.warning(
           "Não foi possível localizar este CNPJ na base da Receita Federal. Preencha os dados manualmente."
         );
       } finally {
@@ -193,11 +197,11 @@ const ClientsPage: React.FC = () => {
             state: response.data.uf || "",
           }));
         } else {
-          alert("CEP não encontrado!");
+          notify.warning("CEP não encontrado!");
         }
       } catch (error) {
         console.error("Erro ao buscar CEP:", error);
-        alert("Erro ao buscar informações do CEP!");
+        notify.warning("Erro ao buscar informações do CEP!");
       } finally {
         setIsLoadingCEP(false);
       }
@@ -224,7 +228,7 @@ const ClientsPage: React.FC = () => {
     e.preventDefault();
 
     if (!validateCNPJ(newClient.cnpj)) {
-      alert("CNPJ inválido!");
+      notify.warning("CNPJ inválido!");
       return;
     }
 
@@ -237,7 +241,7 @@ const ClientsPage: React.FC = () => {
       !addressForm.city ||
       !addressForm.state
     ) {
-      alert("Por favor, preencha todos os campos obrigatórios do endereço!");
+      notify.warning("Por favor, preencha todos os campos obrigatórios do endereço!");
       return;
     }
 
@@ -247,7 +251,7 @@ const ClientsPage: React.FC = () => {
     api
       .post("/clients", clientData)
       .then(() => {
-        alert("Cliente cadastrado com sucesso!");
+        notify.success("Cliente cadastrado com sucesso!");
         setShowModal(false);
         setNewClient({
           companyName: "",
@@ -270,7 +274,7 @@ const ClientsPage: React.FC = () => {
       })
       .catch((err) => {
         console.error("Erro ao cadastrar cliente:", err);
-        alert("Erro ao cadastrar cliente.");
+        notify.apiError(err, "Erro ao cadastrar cliente.");
       });
   };
 

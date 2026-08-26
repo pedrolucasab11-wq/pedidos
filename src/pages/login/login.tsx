@@ -2,6 +2,7 @@ import { useState } from "react";
 import api from "../../services/api";
 import { useNavigate, Link } from "react-router-dom";
 import { FaEnvelope, FaLock, FaExclamationTriangle, FaSignInAlt } from "react-icons/fa";
+import { getErrorMessage } from "../../utils/notify";
 import logo from "../../assets/logo.png";
 import "./LoginPage.css";
 
@@ -22,7 +23,7 @@ function LoginPage() {
       localStorage.setItem("sellerId", response.data.seller.id);
       navigate("/dashboard");
     } catch (err: any) {
-      setError("E-mail ou senha incorretos. Tente novamente.");
+      setError(getErrorMessage(err, "E-mail ou senha incorretos. Tente novamente."));
     } finally {
       setLoading(false);
     }

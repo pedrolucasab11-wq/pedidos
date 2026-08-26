@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Login from "./pages/login/login";
 import RegisterPage from "./pages/register/RegisterPage";
 import Pedidos from "./pages/orders/pedidos";
@@ -12,6 +14,14 @@ import ProtectedRoute from "./components/ProtectedRoute";
 function App() {
   return (
     <BrowserRouter>
+      <ToastContainer
+        position="top-right"
+        autoClose={4000}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        theme="colored"
+      />
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/registro" element={<RegisterPage />} />

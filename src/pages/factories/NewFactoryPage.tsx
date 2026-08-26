@@ -4,6 +4,7 @@ import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
 import { lookupCNPJ } from "../../services/cnpjLookup";
 import { maskCNPJ, maskPhone, maskCEP, validateCNPJ } from "../../utils/masks";
+import { notify } from "../../utils/notify";
 import {
   FaArrowLeft,
   FaIndustry,
@@ -85,7 +86,7 @@ const NewFactoryPage: React.FC = () => {
 
     if (rawCNPJ.length === 14) {
       if (!validateCNPJ(rawCNPJ)) {
-        alert("CNPJ inválido! Verifique os números digitados.");
+        notify.warning("CNPJ inválido! Verifique os números digitados.");
         return;
       }
 
@@ -110,7 +111,7 @@ const NewFactoryPage: React.FC = () => {
         setCnpjAutoFilled(true);
       } catch (error) {
         console.error("Erro ao consultar CNPJ:", error);
-        alert(
+        notify.warning(
           "Não foi possível localizar este CNPJ na base da Receita Federal. Preencha os dados manualmente."
         );
       } finally {
@@ -123,12 +124,12 @@ const NewFactoryPage: React.FC = () => {
     e.preventDefault();
 
     if (form.cnpj && !validateCNPJ(form.cnpj)) {
-      alert("CNPJ inválido!");
+      notify.warning("CNPJ inválido!");
       return;
     }
 
     if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
-      alert("Preencha os campos obrigatórios: Nome Fantasia, E-mail comercial e Telefone comercial.");
+      notify.warning("Preencha os campos obrigatórios: Nome Fantasia, E-mail comercial e Telefone comercial.");
       return;
     }
 
@@ -136,14 +137,12 @@ const NewFactoryPage: React.FC = () => {
     api
       .post("/factories", form)
       .then(() => {
-        alert("Fábrica cadastrada com sucesso!");
+        notify.success("Fábrica cadastrada com sucesso!");
         navigate("/fabricas");
       })
       .catch((err) => {
         console.error("Erro ao cadastrar fábrica:", err);
-        const message =
-          err?.response?.data?.error || "Erro ao cadastrar fábrica.";
-        alert(message);
+        notify.apiError(err, "Erro ao cadastrar fábrica.");
       })
       .finally(() => setSubmitting(false));
   };

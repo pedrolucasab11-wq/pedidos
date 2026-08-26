@@ -3,6 +3,7 @@ import api from "../../services/api";
 import { useNavigate, Link } from "react-router-dom";
 import { FaUser, FaEnvelope, FaPhone, FaLock, FaExclamationTriangle, FaUserPlus } from "react-icons/fa";
 import { maskPhone } from "../../utils/masks";
+import { getErrorMessage } from "../../utils/notify";
 import logo from "../../assets/logo.png";
 import "../login/LoginPage.css";
 
@@ -36,7 +37,7 @@ function RegisterPage() {
       localStorage.setItem("sellerId", response.data.seller.id);
       navigate("/dashboard");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Não foi possível criar sua conta. Tente novamente.");
+      setError(getErrorMessage(err, "Não foi possível criar sua conta. Tente novamente."));
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
 import { generateOrderPDF } from "../../utils/pdfGenerator";
+import { notify } from "../../utils/notify";
 import {
   FaChartPie,
   FaCalendarDay,
@@ -48,7 +49,10 @@ const DashboardPage: React.FC = () => {
         setOrders(data);
         setTotals(calcTotals(data));
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error("Erro ao buscar pedidos:", err);
+        notify.apiError(err, "Não foi possível carregar os pedidos.");
+      })
       .finally(() => setLoading(false));
   }, []);
 

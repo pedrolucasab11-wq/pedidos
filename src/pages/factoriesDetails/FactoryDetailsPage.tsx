@@ -4,6 +4,7 @@ import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
 import ToggleSwitch from "../../components/ToggleSwitch";
 import { maskCurrency } from "../../utils/masks";
+import { notify } from "../../utils/notify";
 import {
   FaArrowLeft,
   FaBuilding,
@@ -73,6 +74,7 @@ const FactoryDetailsPage: React.FC = () => {
     factoryId: 0,
   });
   const [priceInput, setPriceInput] = useState("");
+  const [loadError, setLoadError] = useState(false);
 
   // Função para gerar código automático do produto
   const generateProductCode = () => {
@@ -110,7 +112,11 @@ const FactoryDetailsPage: React.FC = () => {
     api
       .get(`/factories/${id}`)
       .then((res) => setFactory(res.data))
-      .catch((err) => console.error("Erro ao buscar fábrica:", err));
+      .catch((err) => {
+        console.error("Erro ao buscar fábrica:", err);
+        notify.apiError(err, "Não foi possível carregar os dados da fábrica.");
+        setLoadError(true);
+      });
   }, [id]);
 
   const handleToggleActive = (nextActive: boolean) => {
@@ -124,7 +130,7 @@ const FactoryDetailsPage: React.FC = () => {
       .patch(`/factories/${factory.id}/status`, { active: nextActive })
       .catch((err) => {
         console.error("Erro ao atualizar status da fábrica:", err);
-        alert("Não foi possível atualizar o status da fábrica. Tente novamente.");
+        notify.apiError(err, "Não foi possível atualizar o status da fábrica. Tente novamente.");
         setFactory((prev) => (prev ? { ...prev, active: previousActive } : prev));
       });
   };
@@ -151,7 +157,7 @@ const FactoryDetailsPage: React.FC = () => {
       !newProduct.code.trim() ||
       newProduct.unitPrice <= 0
     ) {
-      alert("Preencha todos os campos obrigatórios.");
+      notify.warning("Preencha todos os campos obrigatórios.");
       return;
     }
 
@@ -160,7 +166,7 @@ const FactoryDetailsPage: React.FC = () => {
         ...newProduct,
       })
       .then(() => {
-        alert("Produto cadastrado com sucesso!");
+        notify.success("Produto cadastrado com sucesso!");
         setShowProductModal(false);
         setNewProduct({
           name: "",
@@ -175,8 +181,29 @@ const FactoryDetailsPage: React.FC = () => {
         return api.get(`/factories/${id}`);
       })
       .then((res) => setFactory(res.data))
-      .catch((err) => console.error("Erro:", err));
+      .catch((err) => {
+        console.error("Erro ao cadastrar produto:", err);
+        notify.apiError(err, "Erro ao cadastrar produto.");
+      });
   };
+
+  if (loadError) {
+    return (
+      <div className="factory-details-page">
+        <Sidebar />
+        <main className="factory-details-main">
+          <button className="back-btn" onClick={() => window.history.back()}>
+            <FaArrowLeft /> Voltar para Fábricas
+          </button>
+          <div className="empty-state">
+            <div className="empty-icon"><FaBoxOpen /></div>
+            <h3>Não foi possível carregar esta fábrica</h3>
+            <p>Verifique sua conexão ou tente novamente mais tarde.</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!factory) return <p className="loading-text">Carregando...</p>;
 

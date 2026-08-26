@@ -10,6 +10,7 @@ import {
   CartItem,
 } from "../../utils/pdfGenerator";
 import { maskPhone } from "../../utils/masks";
+import { notify } from "../../utils/notify";
 import {
   FaClipboardList,
   FaBoxOpen,
@@ -70,19 +71,28 @@ const CreateOrderPage: React.FC = () => {
     api
       .get("/auth/me")
       .then((res) => setCurrentSeller(res.data))
-      .catch((err) => console.error("Erro ao buscar vendedor:", err));
+      .catch((err) => {
+        console.error("Erro ao buscar vendedor:", err);
+        notify.apiError(err, "Não foi possível carregar seus dados de vendedor.");
+      });
 
     // Buscar fábricas (com produtos inclusos)
     api
       .get("/factories")
       .then((res) => setFactories(res.data.filter((f: any) => f.active !== false)))
-      .catch((err) => console.error("Erro ao buscar fábricas:", err));
+      .catch((err) => {
+        console.error("Erro ao buscar fábricas:", err);
+        notify.apiError(err, "Não foi possível carregar a lista de fábricas.");
+      });
 
     // Buscar clientes
     api
       .get("/clients")
       .then((res) => setClients(res.data.filter((c: any) => c.active !== false)))
-      .catch((err) => console.error("Erro ao buscar clientes:", err));
+      .catch((err) => {
+        console.error("Erro ao buscar clientes:", err);
+        notify.apiError(err, "Não foi possível carregar a lista de clientes.");
+      });
   }, []);
 
   const filteredProducts = selectedFactory
@@ -171,7 +181,7 @@ const CreateOrderPage: React.FC = () => {
       !selectedClient ||
       cart.length === 0
     ) {
-      alert(
+      notify.warning(
         "Por favor, preencha todos os campos obrigatórios e adicione pelo menos um produto."
       );
       return;
@@ -197,7 +207,7 @@ const CreateOrderPage: React.FC = () => {
     api
       .post("/orders", data)
       .then((response) => {
-        alert("Pedido criado com sucesso!");
+        notify.success("Pedido criado com sucesso!");
 
         // Gerar PDF do pedido
         const orderNumber = response.data.id || new Date().getTime().toString();
@@ -230,7 +240,7 @@ const CreateOrderPage: React.FC = () => {
       })
       .catch((err) => {
         console.error("Erro ao criar pedido:", err);
-        alert("Erro ao criar pedido. Tente novamente.");
+        notify.apiError(err, "Erro ao criar pedido. Tente novamente.");
       });
   };
 
