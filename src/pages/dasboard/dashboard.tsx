@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
 import { generateOrderPDF } from "../../utils/pdfGenerator";
@@ -14,6 +15,7 @@ import {
   FaClipboardList,
   FaFilePdf,
   FaEnvelope,
+  FaPencilAlt,
 } from "react-icons/fa";
 import "./Dashboard.css";
 
@@ -71,6 +73,7 @@ interface Order {
 }
 
 const DashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({ day: 0, month: 0, year: 0 });
@@ -210,6 +213,13 @@ const DashboardPage: React.FC = () => {
                       <td className="order-total">{fmt(calcOrderTotal(o.items))}</td>
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button
+                            className="btn btn-ghost btn-icon-sm"
+                            onClick={() => navigate(`/pedidos/${o.id}/editar`)}
+                            title="Editar pedido"
+                          >
+                            <FaPencilAlt /> Editar
+                          </button>
                           <button
                             className="btn btn-ghost btn-icon-sm"
                             onClick={() => handleViewPDF(o)}

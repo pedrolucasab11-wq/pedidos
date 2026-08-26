@@ -4,6 +4,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Login from "./pages/login/login";
 import RegisterPage from "./pages/register/RegisterPage";
 import Pedidos from "./pages/orders/pedidos";
+import EditOrderPage from "./pages/orders/EditOrderPage";
 import DashboardPage from "./pages/dasboard/dashboard";
 import FactoriesPage from "./pages/factories/factoriesPage";
 import NewFactoryPage from "./pages/factories/NewFactoryPage";
@@ -26,6 +27,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/registro" element={<RegisterPage />} />
         <Route path="/pedidos" element={<ProtectedRoute><Pedidos /></ProtectedRoute>} />
+        <Route path="/pedidos/:id/editar" element={<ProtectedRoute><EditOrderPage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/fabricas" element={<ProtectedRoute><FactoriesPage /></ProtectedRoute>} />
         <Route path="/fabricas/novo" element={<ProtectedRoute><NewFactoryPage /></ProtectedRoute>} />

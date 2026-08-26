@@ -2,6 +2,23 @@
 .orders-container { display: flex; min-height: 100vh; }
 .orders-content { flex: 1; padding: 2.5rem; background: var(--color-bg); }
 
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: var(--font-md);
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+  padding: 0;
+  transition: color 0.2s;
+}
+.back-btn:hover { color: var(--color-primary-dark); }
+
 /* Seções do formulário */
 .form-section {
   background: var(--color-surface);
