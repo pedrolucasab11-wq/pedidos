@@ -75,6 +75,7 @@ const FactoryDetailsPage: React.FC = () => {
   });
   const [priceInput, setPriceInput] = useState("");
   const [loadError, setLoadError] = useState(false);
+  const [submittingProduct, setSubmittingProduct] = useState(false);
 
   // Função para gerar código automático do produto
   const generateProductCode = () => {
@@ -150,20 +151,40 @@ const FactoryDetailsPage: React.FC = () => {
 
 
 
+  const MAX_PRODUCT_FIELD_LENGTH = 150;
+
   const handleProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !newProduct.name.trim() ||
-      !newProduct.code.trim() ||
-      newProduct.unitPrice <= 0
-    ) {
-      notify.warning("Preencha todos os campos obrigatórios.");
+
+    const name = newProduct.name.trim();
+    const code = newProduct.code.trim();
+    const type = newProduct.type.trim();
+
+    if (!name || !code || newProduct.unitPrice <= 0) {
+      notify.warning("Preencha todos os campos obrigatórios (Nome, Código e Preço Unitário).");
+      return;
+    }
+    if (name.length > MAX_PRODUCT_FIELD_LENGTH) {
+      notify.warning(`O nome do produto deve ter no máximo ${MAX_PRODUCT_FIELD_LENGTH} caracteres.`);
+      return;
+    }
+    if (code.length > MAX_PRODUCT_FIELD_LENGTH) {
+      notify.warning(`O código do produto deve ter no máximo ${MAX_PRODUCT_FIELD_LENGTH} caracteres.`);
+      return;
+    }
+    if (type.length > MAX_PRODUCT_FIELD_LENGTH) {
+      notify.warning(`O tipo do produto deve ter no máximo ${MAX_PRODUCT_FIELD_LENGTH} caracteres.`);
       return;
     }
 
+    setSubmittingProduct(true);
     api
       .post("/products", {
         ...newProduct,
+        name,
+        code,
+        type,
+        observation: newProduct.observation.trim(),
       })
       .then(() => {
         notify.success("Produto cadastrado com sucesso!");
@@ -184,7 +205,8 @@ const FactoryDetailsPage: React.FC = () => {
       .catch((err) => {
         console.error("Erro ao cadastrar produto:", err);
         notify.apiError(err, "Erro ao cadastrar produto.");
-      });
+      })
+      .finally(() => setSubmittingProduct(false));
   };
 
   if (loadError) {
@@ -283,10 +305,21 @@ const FactoryDetailsPage: React.FC = () => {
             <h1 style={{ fontSize: '1.6rem' }}><FaBoxOpen className="page-title-icon" /> Produtos da Fábrica</h1>
             <p>{factory.products.length} produto(s) cadastrado(s)</p>
           </div>
-          <button className="btn btn-success" onClick={() => openProductModal(factory.id)}>
+          <button
+            className="btn btn-success"
+            onClick={() => openProductModal(factory.id)}
+            disabled={!factory.active}
+            title={!factory.active ? "Ative a fábrica para adicionar produtos" : undefined}
+          >
             <FaPlus /> Novo Produto
           </button>
         </div>
+
+        {!factory.active && (
+          <p style={{ color: "var(--color-text-muted)", marginTop: "-1rem", marginBottom: "1.5rem" }}>
+            Esta fábrica está inativa. Reative-a para cadastrar novos produtos.
+          </p>
+        )}
 
         {factory.products.length === 0 ? (
           <div className="empty-state">
@@ -327,12 +360,12 @@ const FactoryDetailsPage: React.FC = () => {
                   <div className="form-group">
                     <label htmlFor="p-name">Nome do Produto *</label>
                     <input id="p-name" type="text" name="name" value={newProduct.name}
-                      onChange={handleProductChange} placeholder="Ex: Camiseta Polo" required />
+                      onChange={handleProductChange} placeholder="Ex: Camiseta Polo" maxLength={MAX_PRODUCT_FIELD_LENGTH} required />
                   </div>
                   <div className="form-group">
                     <label htmlFor="p-code">Código do Produto *</label>
                     <input id="p-code" type="text" name="code" value={newProduct.code}
-                      onChange={handleProductChange} placeholder="Ex: CAM-001" required />
+                      onChange={handleProductChange} placeholder="Ex: CAM-001" maxLength={MAX_PRODUCT_FIELD_LENGTH} required />
                   </div>
                   <div className="form-group">
                     <label htmlFor="p-price">Preço Unitário *</label>
@@ -350,6 +383,7 @@ const FactoryDetailsPage: React.FC = () => {
                       placeholder="Ex: Camiseta, Calça, etc."
                       value={newProduct.type}
                       onChange={handleProductChange}
+                      maxLength={MAX_PRODUCT_FIELD_LENGTH}
                     />
                   </div>
 
@@ -365,8 +399,10 @@ const FactoryDetailsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-ghost" onClick={() => setShowProductModal(false)}>Cancelar</button>
-                  <button type="submit" className="btn btn-success"><FaCheck /> Salvar Produto</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => setShowProductModal(false)} disabled={submittingProduct}>Cancelar</button>
+                  <button type="submit" className="btn btn-success" disabled={submittingProduct}>
+                    <FaCheck /> {submittingProduct ? "Salvando..." : "Salvar Produto"}
+                  </button>
                 </div>
               </form>
             </div>
