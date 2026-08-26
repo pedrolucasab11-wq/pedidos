@@ -3,6 +3,7 @@ import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
 import { generateOrderPDF } from "../../utils/pdfGenerator";
 import { notify } from "../../utils/notify";
+import { applyCascadeDiscount } from "../../utils/discount";
 import {
   FaChartPie,
   FaCalendarDay,
@@ -16,7 +17,9 @@ import "./Dashboard.css";
 
 interface OrderItem {
   quantity: number;
-  product: { name: string; unitPrice: number };
+  // Preço "congelado" no momento em que o pedido foi feito.
+  unitPrice: number;
+  product: { name: string; unitPrice: number | null };
   type?: string;
   observation?: string;
   discount?: string;
@@ -60,7 +63,7 @@ const DashboardPage: React.FC = () => {
     const now = new Date();
     let day = 0, month = 0, year = 0;
     orders.forEach((o) => {
-      const total = o.items.reduce((s, i) => s + i.quantity * i.product.unitPrice, 0);
+      const total = calcOrderTotal(o.items);
       const d = new Date(o.createdAt);
       if (d.getFullYear() === now.getFullYear()) {
         year += total;
@@ -74,7 +77,7 @@ const DashboardPage: React.FC = () => {
   };
 
   const calcOrderTotal = (items: OrderItem[]) =>
-    items.reduce((s, i) => s + i.quantity * i.product.unitPrice, 0);
+    items.reduce((s, i) => s + i.quantity * applyCascadeDiscount(i.unitPrice, i.discount), 0);
 
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -111,6 +114,7 @@ const DashboardPage: React.FC = () => {
         observation: i.observation,
         discount: i.discount,
         quantity: i.quantity,
+        unitPrice: i.unitPrice,
       })),
       buyerName: order.buyerName,
       buyerPhone: order.buyerPhone,

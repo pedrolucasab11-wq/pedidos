@@ -9,8 +9,9 @@ import {
   Seller,
   CartItem,
 } from "../../utils/pdfGenerator";
-import { maskPhone } from "../../utils/masks";
+import { maskPhone, maskCurrency } from "../../utils/masks";
 import { notify } from "../../utils/notify";
+import { applyCascadeDiscount } from "../../utils/discount";
 import {
   FaClipboardList,
   FaBoxOpen,
@@ -26,21 +27,6 @@ import {
   FaCheck,
 } from "react-icons/fa";
 import "./Pedidos.css";
-
-const applyCascadeDiscount = (basePrice: number, discountString?: string): number => {
-  if (!discountString || discountString.trim() === "") return basePrice;
-  const discounts = discountString
-    .split("/")
-    .map(d => parseFloat(d.trim().replace(",", ".")))
-    .filter(d => !isNaN(d));
-  
-  let currentPrice = basePrice;
-  for (const d of discounts) {
-    currentPrice = currentPrice * (1 - (d / 100));
-  }
-  return currentPrice;
-};
-
 
 const CreateOrderPage: React.FC = () => {
   const [currentSeller, setCurrentSeller] = useState<Seller | null>(null);
@@ -65,6 +51,8 @@ const CreateOrderPage: React.FC = () => {
   const [observation, setObservation] = useState("");
   const [discount, setDiscount] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [unitPriceInput, setUnitPriceInput] = useState("");
+  const [submittingOrder, setSubmittingOrder] = useState(false);
 
   useEffect(() => {
     // Buscar vendedor autenticado (pedidos são sempre criados em nome de quem está logado)
@@ -109,24 +97,47 @@ const CreateOrderPage: React.FC = () => {
     setObservation(product.observation || "");
     setDiscount("");
     setQuantity(1);
+    // Pré-preenche com o preço de referência do produto, se houver, mas o
+    // valor final é sempre definido aqui, pois pode variar por negociação.
+    setUnitPriceInput(product.unitPrice != null ? maskCurrency(product.unitPrice) : "");
     setShowProductModal(true);
+  };
+
+  const parseUnitPriceInput = (value: string) => {
+    const numeric = parseFloat(value.replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
+
+  const handleUnitPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUnitPriceInput(maskCurrency(e.target.value));
   };
 
   const addToCart = () => {
     if (!selectedProduct) return;
+
+    const unitPrice = parseUnitPriceInput(unitPriceInput);
+    if (unitPrice <= 0) {
+      notify.warning("Informe o valor unitário do produto.");
+      return;
+    }
+    if (!quantity || Number(quantity) <= 0) {
+      notify.warning("Informe uma quantidade válida.");
+      return;
+    }
 
     const existingItemIndex = cart.findIndex(
       (item) =>
         item.product.id === selectedProduct.id &&
         item.type === type &&
         item.observation === observation &&
-        item.discount === discount
+        item.discount === discount &&
+        item.unitPrice === unitPrice
     );
 
     if (existingItemIndex >= 0) {
       // Se já existe, apenas atualiza a quantidade
       const updatedCart = [...cart];
-      updatedCart[existingItemIndex].quantity += quantity;
+      updatedCart[existingItemIndex].quantity += Number(quantity);
       setCart(updatedCart);
     } else {
       // Adiciona novo item
@@ -135,18 +146,20 @@ const CreateOrderPage: React.FC = () => {
         type,
         observation,
         discount,
-        quantity,
+        quantity: Number(quantity),
+        unitPrice,
       };
       setCart([...cart, newItem]);
     }
 
     setShowProductModal(false);
     setSelectedProduct(null);
+    setUnitPriceInput("");
   };
 
   const updateCartItem = (
     index: number,
-    field: "quantity" | "type" | "observation" | "discount",
+    field: "quantity" | "type" | "observation" | "discount" | "unitPrice",
     value: string | number
   ) => {
     const updatedCart = [...cart];
@@ -158,6 +171,8 @@ const CreateOrderPage: React.FC = () => {
       updatedCart[index].observation = String(value);
     } else if (field === "discount") {
       updatedCart[index].discount = String(value);
+    } else if (field === "unitPrice") {
+      updatedCart[index].unitPrice = Number(value) || 0;
     }
     setCart(updatedCart);
   };
@@ -169,7 +184,7 @@ const CreateOrderPage: React.FC = () => {
 
   const getTotalValue = () => {
     return cart.reduce((total, item) => {
-      const unitPriceWithDiscount = applyCascadeDiscount(item.product.unitPrice, item.discount);
+      const unitPriceWithDiscount = applyCascadeDiscount(item.unitPrice, item.discount);
       const qty = Number(item.quantity) || 0;
       return total + (unitPriceWithDiscount * qty);
     }, 0);
@@ -201,9 +216,11 @@ const CreateOrderPage: React.FC = () => {
         observation: item.observation,
         discount: item.discount,
         quantity: Number(item.quantity) || 1,
+        unitPrice: item.unitPrice,
       })),
     };
 
+    setSubmittingOrder(true);
     api
       .post("/orders", data)
       .then((response) => {
@@ -241,7 +258,8 @@ const CreateOrderPage: React.FC = () => {
       .catch((err) => {
         console.error("Erro ao criar pedido:", err);
         notify.apiError(err, "Erro ao criar pedido. Tente novamente.");
-      });
+      })
+      .finally(() => setSubmittingOrder(false));
   };
 
   return (
@@ -359,7 +377,9 @@ const CreateOrderPage: React.FC = () => {
                   <div key={product.id} className="product-card">
                     <div className="product-name">{product.name}</div>
                     <div className="product-code"><FaHashtag className="row-icon" /> Código: {product.code}</div>
-                    <div className="product-price">R$ {product.unitPrice.toFixed(2)}</div>
+                    <div className="product-price">
+                      {product.unitPrice != null ? `R$ ${product.unitPrice.toFixed(2)} (referência)` : "Sem preço de referência"}
+                    </div>
                     <div className="product-tags" style={{ marginBottom: '1rem' }}>
                       {product.type && <span className="tag"><FaTag /> {product.type}</span>}
                     </div>
@@ -394,10 +414,20 @@ const CreateOrderPage: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <strong style={{ fontSize: '1.2rem' }}>{item.product.name}</strong>
                       <span style={{ color: '#666' }}>Código: {item.product.code}</span>
-                      <span style={{ color: '#333' }}>R$ {item.product.unitPrice.toFixed(2)} / un</span>
                     </div>
                     
                     <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                      <div className="form-group" style={{ marginBottom: 0, width: '110px' }}>
+                        <label style={{ fontSize: '0.8rem', marginBottom: '2px' }}>Valor Unit. (R$)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.unitPrice}
+                          onChange={(e) => updateCartItem(index, "unitPrice", e.target.value)}
+                          style={{ height: '40px', fontSize: '0.9rem', padding: '0 10px' }}
+                        />
+                      </div>
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label style={{ fontSize: '0.8rem', marginBottom: '2px' }}>Desconto</label>
                         <input
@@ -432,7 +462,7 @@ const CreateOrderPage: React.FC = () => {
                       
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px', minWidth: '120px' }}>
                         <strong style={{ fontSize: '1.3rem', color: 'var(--color-primary)' }}>
-                          R$ {(applyCascadeDiscount(item.product.unitPrice, item.discount) * (Number(item.quantity) || 0)).toFixed(2)}
+                          R$ {(applyCascadeDiscount(item.unitPrice, item.discount) * (Number(item.quantity) || 0)).toFixed(2)}
                         </strong>
                         <button
                           className="btn btn-ghost"
@@ -492,9 +522,9 @@ const CreateOrderPage: React.FC = () => {
               className="btn btn-success"
               style={{ fontSize: '1.2rem', padding: '0 30px', height: '64px' }}
               onClick={handleSubmit}
-              disabled={cart.length === 0}
+              disabled={cart.length === 0 || submittingOrder}
             >
-              <FaCheck /> Finalizar e Gerar PDF
+              <FaCheck /> {submittingOrder ? "Enviando..." : "Finalizar e Gerar PDF"}
             </button>
           </div>
         </div>
@@ -512,11 +542,41 @@ const CreateOrderPage: React.FC = () => {
                 <div style={{ background: 'var(--color-bg)', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
                   <h4 style={{ fontSize: '1.2rem', margin: '0 0 5px 0' }}>{selectedProduct.name}</h4>
                   <p style={{ margin: 0, color: '#666' }}>Código: {selectedProduct.code}</p>
-                  <p style={{ margin: '5px 0 0 0', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                    R$ {selectedProduct.unitPrice.toFixed(2)} / un
-                  </p>
+                  {selectedProduct.unitPrice != null && (
+                    <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '0.9rem' }}>
+                      Preço de referência: R$ {selectedProduct.unitPrice.toFixed(2)}
+                    </p>
+                  )}
                 </div>
-                
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="modal-unit-price">Valor Unitário (R$) *</label>
+                    <div className="price-input-group">
+                      <span className="price-prefix">R$</span>
+                      <input
+                        id="modal-unit-price"
+                        type="text"
+                        value={unitPriceInput}
+                        onChange={handleUnitPriceChange}
+                        placeholder="0,00"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="modal-quantity">Quantidade *</label>
+                    <input
+                      id="modal-quantity"
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value === "" ? ("" as any) : Number(e.target.value))}
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label>Tipo</label>
                   <input
@@ -543,19 +603,9 @@ const CreateOrderPage: React.FC = () => {
                     onChange={(e) => setObservation(e.target.value)}
                   />
                 </div>
-                
-                <div className="form-group">
-                  <label>Quantidade *</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value === "" ? ("" as any) : Number(e.target.value))}
-                  />
-                </div>
-                
+
                 <div style={{ textAlign: 'right', fontSize: '1.5rem', color: 'var(--color-primary-dark)', margin: '15px 0 5px 0' }}>
-                  <strong>Total: R$ {(applyCascadeDiscount(selectedProduct.unitPrice, discount) * (Number(quantity) || 0)).toFixed(2)}</strong>
+                  <strong>Total: R$ {(applyCascadeDiscount(parseUnitPriceInput(unitPriceInput), discount) * (Number(quantity) || 0)).toFixed(2)}</strong>
                 </div>
               </div>
               

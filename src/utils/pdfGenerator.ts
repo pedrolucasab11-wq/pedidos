@@ -1,10 +1,14 @@
+import { applyCascadeDiscount } from "./discount";
+
 export interface Product {
   id: number;
   name: string;
   code: string;
   type?: string;
   observation?: string;
-  unitPrice: number;
+  // Preço de referência opcional, cadastrado na fábrica. O preço real usado
+  // no pedido fica em CartItem.unitPrice, definido no momento da venda.
+  unitPrice: number | null;
   factoryId: number;
 }
 
@@ -43,21 +47,9 @@ export interface CartItem {
   observation?: string;
   discount?: string;
   quantity: number;
+  // Valor unitário definido no momento do pedido (o preço do produto é só uma referência).
+  unitPrice: number;
 }
-
-const applyCascadeDiscount = (basePrice: number, discountString?: string): number => {
-  if (!discountString || discountString.trim() === "") return basePrice;
-  const discounts = discountString
-    .split("/")
-    .map(d => parseFloat(d.trim().replace(",", ".")))
-    .filter(d => !isNaN(d));
-  
-  let currentPrice = basePrice;
-  for (const d of discounts) {
-    currentPrice = currentPrice * (1 - (d / 100));
-  }
-  return currentPrice;
-};
 
 export const generateOrderPDF = (orderData: {
   orderNumber: string;
@@ -516,7 +508,7 @@ export const generateOrderPDF = (orderData: {
                     ${cart
                       .map(
                         (item) => {
-                          const subtotal = applyCascadeDiscount(item.product.unitPrice, item.discount);
+                          const subtotal = applyCascadeDiscount(item.unitPrice, item.discount);
                           const valorFinal = subtotal * item.quantity;
                           return `
                         <tr>
@@ -529,7 +521,7 @@ export const generateOrderPDF = (orderData: {
                             <td class="text-center"><strong>${
                               item.quantity
                             }</strong></td>
-                            <td class="text-right">R$ ${item.product.unitPrice.toFixed(
+                            <td class="text-right">R$ ${item.unitPrice.toFixed(
                               2
                             )}</td>
                             <td class="text-center">${item.discount || "0"}</td>

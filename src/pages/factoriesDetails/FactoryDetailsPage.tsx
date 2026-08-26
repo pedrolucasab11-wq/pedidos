@@ -35,7 +35,7 @@ interface Product {
   code: string;
   type?: string;
   observation?: string;
-  unitPrice: number;
+  unitPrice: number | null;
 }
 
 interface Factory {
@@ -160,8 +160,8 @@ const FactoryDetailsPage: React.FC = () => {
     const code = newProduct.code.trim();
     const type = newProduct.type.trim();
 
-    if (!name || !code || newProduct.unitPrice <= 0) {
-      notify.warning("Preencha todos os campos obrigatórios (Nome, Código e Preço Unitário).");
+    if (!name || !code) {
+      notify.warning("Preencha os campos obrigatórios (Nome e Código do produto).");
       return;
     }
     if (name.length > MAX_PRODUCT_FIELD_LENGTH) {
@@ -185,6 +185,8 @@ const FactoryDetailsPage: React.FC = () => {
         code,
         type,
         observation: newProduct.observation.trim(),
+        // Preço de referência é opcional: envia null se o campo ficou vazio.
+        unitPrice: priceInput.trim() === "" ? null : newProduct.unitPrice,
       })
       .then(() => {
         notify.success("Produto cadastrado com sucesso!");
@@ -333,7 +335,11 @@ const FactoryDetailsPage: React.FC = () => {
               <div key={product.id} className="product-card">
                 <div className="product-name">{product.name}</div>
                 <div className="product-code"><FaHashtag className="row-icon" /> Código: {product.code}</div>
-                <p>R$ {product.unitPrice.toFixed(2)}</p>
+                <p>
+                  {product.unitPrice != null
+                    ? `R$ ${product.unitPrice.toFixed(2)} (referência)`
+                    : "Preço definido no pedido"}
+                </p>
                 <div className="product-tags">
                   {product.type && <span className="tag"><FaTag /> {product.type}</span>}
                 </div>
@@ -368,12 +374,15 @@ const FactoryDetailsPage: React.FC = () => {
                       onChange={handleProductChange} placeholder="Ex: CAM-001" maxLength={MAX_PRODUCT_FIELD_LENGTH} required />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="p-price">Preço Unitário *</label>
+                    <label htmlFor="p-price">Preço de Referência (Opcional)</label>
                     <div className="price-input-group">
                       <span className="price-prefix">R$</span>
                       <input id="p-price" type="text" name="unitPrice" value={priceInput}
-                        onChange={handleProductChange} placeholder="0,00" required />
+                        onChange={handleProductChange} placeholder="0,00" />
                     </div>
+                    <small className="cep-loading" style={{ color: "var(--color-text-muted)" }}>
+                      O preço de venda real é informado ao adicionar o produto a um pedido, pois pode variar.
+                    </small>
                   </div>
                   <div className="form-group">
                     <label>Tipo do Produto</label>
