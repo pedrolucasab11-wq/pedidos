@@ -15,6 +15,34 @@ import {
 } from "react-icons/fa";
 import "./Dashboard.css";
 
+interface OrderItemLike {
+  quantity: number;
+  unitPrice: number;
+  discount?: string;
+}
+
+// Funções puras (não dependem de estado do componente), definidas fora
+// para não precisarem entrar nas dependências do useEffect.
+const calcOrderTotal = (items: OrderItemLike[]) =>
+  items.reduce((s, i) => s + i.quantity * applyCascadeDiscount(i.unitPrice, i.discount), 0);
+
+const calcTotals = (orders: { createdAt: string; items: OrderItemLike[] }[]) => {
+  const now = new Date();
+  let day = 0, month = 0, year = 0;
+  orders.forEach((o) => {
+    const total = calcOrderTotal(o.items);
+    const d = new Date(o.createdAt);
+    if (d.getFullYear() === now.getFullYear()) {
+      year += total;
+      if (d.getMonth() === now.getMonth()) {
+        month += total;
+        if (d.getDate() === now.getDate()) day += total;
+      }
+    }
+  });
+  return { day, month, year };
+};
+
 interface OrderItem {
   quantity: number;
   // Preço "congelado" no momento em que o pedido foi feito.
@@ -58,26 +86,6 @@ const DashboardPage: React.FC = () => {
       })
       .finally(() => setLoading(false));
   }, []);
-
-  const calcTotals = (orders: Order[]) => {
-    const now = new Date();
-    let day = 0, month = 0, year = 0;
-    orders.forEach((o) => {
-      const total = calcOrderTotal(o.items);
-      const d = new Date(o.createdAt);
-      if (d.getFullYear() === now.getFullYear()) {
-        year += total;
-        if (d.getMonth() === now.getMonth()) {
-          month += total;
-          if (d.getDate() === now.getDate()) day += total;
-        }
-      }
-    });
-    return { day, month, year };
-  };
-
-  const calcOrderTotal = (items: OrderItem[]) =>
-    items.reduce((s, i) => s + i.quantity * applyCascadeDiscount(i.unitPrice, i.discount), 0);
 
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
