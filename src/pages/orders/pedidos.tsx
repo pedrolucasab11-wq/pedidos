@@ -12,6 +12,7 @@ import {
 import { maskPhone, maskCurrency } from "../../utils/masks";
 import { notify } from "../../utils/notify";
 import { applyCascadeDiscount } from "../../utils/discount";
+import SendOrderEmailModal from "../../components/SendOrderEmailModal";
 import {
   FaClipboardList,
   FaBoxOpen,
@@ -53,6 +54,12 @@ const CreateOrderPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [unitPriceInput, setUnitPriceInput] = useState("");
   const [submittingOrder, setSubmittingOrder] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState<{
+    id: number;
+    orderNumber: string;
+    client: Client;
+    factory: Factory;
+  } | null>(null);
 
   useEffect(() => {
     // Buscar vendedor autenticado (pedidos são sempre criados em nome de quem está logado)
@@ -227,7 +234,7 @@ const CreateOrderPage: React.FC = () => {
         notify.success("Pedido criado com sucesso!");
 
         // Gerar PDF do pedido
-        const orderNumber = response.data.id || new Date().getTime().toString();
+        const orderNumber = response.data.orderNumber || response.data.id || new Date().getTime().toString();
         const selectedClientData = clients.find((c) => c.id === selectedClient);
 
         if (currentSeller && selectedClientData && selectedFactory) {
@@ -244,6 +251,14 @@ const CreateOrderPage: React.FC = () => {
             freightType,
             description,
             total: getTotalValue(),
+          });
+
+          // Abre a confirmação de envio por e-mail (cliente/fábrica) depois do PDF.
+          setCreatedOrder({
+            id: response.data.id,
+            orderNumber,
+            client: selectedClientData,
+            factory: selectedFactory,
           });
         }
 
@@ -615,6 +630,19 @@ const CreateOrderPage: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Confirmação de envio do pedido por e-mail (cliente/fábrica) */}
+        {createdOrder && (
+          <SendOrderEmailModal
+            orderId={createdOrder.id}
+            orderNumber={createdOrder.orderNumber}
+            clientEmail={createdOrder.client.email}
+            clientName={createdOrder.client.companyName}
+            factoryEmail={createdOrder.factory.email}
+            factoryName={createdOrder.factory.name}
+            onClose={() => setCreatedOrder(null)}
+          />
         )}
       </div>
     </div>

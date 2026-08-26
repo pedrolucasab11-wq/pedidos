@@ -4,6 +4,7 @@ import Sidebar from "../../components/Sidebar";
 import { generateOrderPDF } from "../../utils/pdfGenerator";
 import { notify } from "../../utils/notify";
 import { applyCascadeDiscount } from "../../utils/discount";
+import SendOrderEmailModal from "../../components/SendOrderEmailModal";
 import {
   FaChartPie,
   FaCalendarDay,
@@ -12,6 +13,7 @@ import {
   FaBoxes,
   FaClipboardList,
   FaFilePdf,
+  FaEnvelope,
 } from "react-icons/fa";
 import "./Dashboard.css";
 
@@ -72,6 +74,7 @@ const DashboardPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({ day: 0, month: 0, year: 0 });
+  const [emailOrder, setEmailOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     api.get("/orders")
@@ -206,13 +209,22 @@ const DashboardPage: React.FC = () => {
                       </td>
                       <td className="order-total">{fmt(calcOrderTotal(o.items))}</td>
                       <td style={{ textAlign: 'center' }}>
-                        <button
-                          className="btn btn-ghost btn-icon-sm"
-                          onClick={() => handleViewPDF(o)}
-                          title="Ver PDF"
-                        >
-                          <FaFilePdf /> PDF
-                        </button>
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button
+                            className="btn btn-ghost btn-icon-sm"
+                            onClick={() => handleViewPDF(o)}
+                            title="Ver PDF"
+                          >
+                            <FaFilePdf /> PDF
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-icon-sm"
+                            onClick={() => setEmailOrder(o)}
+                            title="Enviar por e-mail"
+                          >
+                            <FaEnvelope /> E-mail
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -221,6 +233,18 @@ const DashboardPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {emailOrder && (
+          <SendOrderEmailModal
+            orderId={emailOrder.id}
+            orderNumber={emailOrder.orderNumber}
+            clientEmail={emailOrder.client?.email}
+            clientName={emailOrder.client?.companyName || "Cliente"}
+            factoryEmail={emailOrder.factory?.email}
+            factoryName={emailOrder.factory?.name || "Fábrica"}
+            onClose={() => setEmailOrder(null)}
+          />
+        )}
       </div>
     </div>
   );
