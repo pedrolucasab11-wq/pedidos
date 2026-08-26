@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
 import ToggleSwitch from "../../components/ToggleSwitch";
@@ -26,6 +26,7 @@ import {
   FaStickyNote,
   FaHashtag,
   FaCheck,
+  FaPencilAlt,
 } from "react-icons/fa";
 import "./FactoriesDetails.css";
 
@@ -63,6 +64,7 @@ interface Factory {
 
 const FactoryDetailsPage: React.FC = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [factory, setFactory] = useState<Factory | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [newProduct, setNewProduct] = useState({
@@ -244,11 +246,20 @@ const FactoryDetailsPage: React.FC = () => {
           <div className="factory-hero-info">
             <div className="factory-hero-status-row">
               <h2>{factory.name}</h2>
-              <ToggleSwitch
-                checked={factory.active}
-                onChange={handleToggleActive}
-                id="factory-detail-toggle"
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <button
+                  className="btn btn-ghost btn-icon-sm"
+                  onClick={() => navigate(`/fabricas/${factory.id}/editar`)}
+                  title="Editar dados da fábrica"
+                >
+                  <FaPencilAlt /> Editar
+                </button>
+                <ToggleSwitch
+                  checked={factory.active}
+                  onChange={handleToggleActive}
+                  id="factory-detail-toggle"
+                />
+              </div>
             </div>
             {factory.razaoSocial && (
               <div className="factory-contact-row"><FaBuilding className="row-icon" /> {factory.razaoSocial}</div>

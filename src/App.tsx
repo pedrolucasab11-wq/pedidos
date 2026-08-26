@@ -8,6 +8,7 @@ import EditOrderPage from "./pages/orders/EditOrderPage";
 import DashboardPage from "./pages/dasboard/dashboard";
 import FactoriesPage from "./pages/factories/factoriesPage";
 import NewFactoryPage from "./pages/factories/NewFactoryPage";
+import EditFactoryPage from "./pages/factories/EditFactoryPage";
 import ClientsPage from "./pages/clients/ClientsPage";
 import FactoryDetailsPage from "./pages/factoriesDetails/FactoryDetailsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -31,6 +32,7 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/fabricas" element={<ProtectedRoute><FactoriesPage /></ProtectedRoute>} />
         <Route path="/fabricas/novo" element={<ProtectedRoute><NewFactoryPage /></ProtectedRoute>} />
+        <Route path="/fabricas/:id/editar" element={<ProtectedRoute><EditFactoryPage /></ProtectedRoute>} />
         <Route path="/factories/:id" element={<ProtectedRoute><FactoryDetailsPage /></ProtectedRoute>} />
         <Route path="/clientes" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
       </Routes>
