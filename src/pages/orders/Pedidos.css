@@ -188,6 +188,13 @@
 .cart-summary-label { font-size: 1.1rem; font-weight: 600; opacity: 0.85; }
 .cart-summary-value { font-size: 2rem; font-weight: 800; }
 
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
 /* Ação final */
 .form-actions {
   display: flex;

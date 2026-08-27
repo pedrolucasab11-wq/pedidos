@@ -61,6 +61,7 @@ export const generateOrderPDF = (orderData: {
   buyerName: string;
   buyerPhone?: string;
   paymentMethod: string;
+  paymentTerms?: string;
   freightType?: string;
   description: string;
   total: number;
@@ -75,6 +76,7 @@ export const generateOrderPDF = (orderData: {
     buyerName,
     buyerPhone,
     paymentMethod,
+    paymentTerms,
     freightType,
     description,
     total,
@@ -465,7 +467,7 @@ export const generateOrderPDF = (orderData: {
                 <div class="client-commercial">
                     <div class="info-line">
                         <span class="info-label">FORMA PGTO:</span>
-                        <span class="info-value">${paymentMethod}</span>
+                        <span class="info-value">${paymentMethod}${paymentTerms ? ` — Prazo: ${paymentTerms} dias` : ""}</span>
                     </div>
                 </div>
             </div>

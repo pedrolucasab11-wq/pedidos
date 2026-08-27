@@ -16,6 +16,7 @@ import {
   FaFilePdf,
   FaEnvelope,
   FaPencilAlt,
+  FaSearch,
 } from "react-icons/fa";
 import "./Dashboard.css";
 
@@ -64,6 +65,7 @@ interface Order {
   buyerName: string;
   buyerPhone?: string;
   paymentMethod: string;
+  paymentTerms?: string | null;
   items: OrderItem[];
   client: any;
   factory: any;
@@ -78,6 +80,9 @@ const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({ day: 0, month: 0, year: 0 });
   const [emailOrder, setEmailOrder] = useState<Order | null>(null);
+  // Busca por número do pedido: usada para localizar rapidamente um pedido
+  // na hora de "dar baixa" (confirmar pagamento), que é feito pelo número.
+  const [orderSearch, setOrderSearch] = useState("");
 
   useEffect(() => {
     api.get("/orders")
@@ -112,8 +117,21 @@ const DashboardPage: React.FC = () => {
     if (m.includes("pix")) return "pix";
     if (m.includes("boleto")) return "boleto";
     if (m.includes("cartão") || m.includes("cartao")) return "cartao";
+    if (m.includes("dinheiro")) return "dinheiro";
     return "prazo";
   };
+
+  // Rótulo do badge de pagamento: mostra o prazo junto quando houver
+  // (ex: "Boleto (30/60/90 dias)"), pois é a informação que o vendedor
+  // mais precisa ver de imediato ao localizar o pedido.
+  const getPaymentLabel = (order: Order) =>
+    order.paymentTerms ? `${order.paymentMethod} (${order.paymentTerms} dias)` : order.paymentMethod;
+
+  const normalize = (value: string) => value.toLowerCase().trim();
+
+  const filteredOrders = orderSearch.trim()
+    ? orders.filter((o) => normalize(o.orderNumber).includes(normalize(orderSearch)))
+    : orders;
 
   const handleViewPDF = (order: Order) => {
     generateOrderPDF({
@@ -133,6 +151,7 @@ const DashboardPage: React.FC = () => {
       buyerName: order.buyerName,
       buyerPhone: order.buyerPhone,
       paymentMethod: order.paymentMethod,
+      paymentTerms: order.paymentTerms || "",
       freightType: order.freightType,
       description: order.description || "",
       total: calcOrderTotal(order.items),
@@ -174,12 +193,24 @@ const DashboardPage: React.FC = () => {
           <div className="orders-section-header">
             <FaClipboardList className="orders-section-icon" />
             <h2>Pedidos Recentes</h2>
+            <div className="order-search-bar">
+              <FaSearch className="order-search-icon" />
+              <input
+                type="text"
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                placeholder="Buscar pelo número do pedido..."
+                aria-label="Buscar pedido pelo número"
+              />
+            </div>
           </div>
 
           {loading ? (
             <p className="no-orders-msg">Carregando pedidos...</p>
           ) : orders.length === 0 ? (
             <p className="no-orders-msg">Nenhum pedido cadastrado ainda.</p>
+          ) : filteredOrders.length === 0 ? (
+            <p className="no-orders-msg">Nenhum pedido encontrado com esse número.</p>
           ) : (
             <div style={{ overflowX: "auto" }}>
               <table className="orders-table">
@@ -197,7 +228,7 @@ const DashboardPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((o) => (
+                  {filteredOrders.map((o) => (
                     <tr key={o.id}>
                       <td><span className="order-number">{o.orderNumber}</span></td>
                       <td>{fmtDate(o.createdAt)}</td>
@@ -207,7 +238,7 @@ const DashboardPage: React.FC = () => {
                       <td>{getOrderSummary(o.items)}</td>
                       <td>
                         <span className={`payment-badge ${getPaymentClass(o.paymentMethod)}`}>
-                          {o.paymentMethod}
+                          {getPaymentLabel(o)}
                         </span>
                       </td>
                       <td className="order-total">{fmt(calcOrderTotal(o.items))}</td>

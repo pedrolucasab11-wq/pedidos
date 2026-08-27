@@ -6,6 +6,7 @@ import { Factory, Client, CartItem } from "../../utils/pdfGenerator";
 import { maskPhone } from "../../utils/masks";
 import { notify } from "../../utils/notify";
 import OrderItemsEditor from "../../components/OrderItemsEditor";
+import { PAYMENT_METHODS, isInstallmentPayment } from "../../utils/paymentMethods";
 import { FaArrowLeft, FaClipboardList, FaCheck } from "react-icons/fa";
 import "./Pedidos.css";
 
@@ -25,6 +26,7 @@ const EditOrderPage: React.FC = () => {
   const [buyerName, setBuyerName] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
+  const [paymentTerms, setPaymentTerms] = useState("");
   const [description, setDescription] = useState("");
   const [freightType, setFreightType] = useState("CIF");
 
@@ -51,6 +53,7 @@ const EditOrderPage: React.FC = () => {
         setBuyerName(order.buyerName || "");
         setBuyerPhone(order.buyerPhone || "");
         setPaymentMethod(order.paymentMethod || "PIX");
+        setPaymentTerms(order.paymentTerms || "");
         setDescription(order.description || "");
         setFreightType(order.freightType || "CIF");
         setCart(
@@ -85,6 +88,7 @@ const EditOrderPage: React.FC = () => {
       buyerName,
       buyerPhone,
       paymentMethod,
+      paymentTerms: isInstallmentPayment(paymentMethod) ? paymentTerms.trim() : "",
       description,
       freightType,
       products: cart.map((item) => ({
@@ -178,14 +182,31 @@ const EditOrderPage: React.FC = () => {
               <label>Forma de Pagamento</label>
               <select
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setPaymentMethod(value);
+                  if (!isInstallmentPayment(value)) setPaymentTerms("");
+                }}
               >
-                <option value="PIX">PIX</option>
-                <option value="Boleto">Boleto</option>
-                <option value="Cartão">Cartão</option>
-                <option value="Dinheiro">Dinheiro</option>
+                {PAYMENT_METHODS.map((method) => (
+                  <option key={method} value={method}>
+                    {method}
+                  </option>
+                ))}
               </select>
             </div>
+            {isInstallmentPayment(paymentMethod) && (
+              <div className="form-group">
+                <label>Prazo do Boleto (dias)</label>
+                <input
+                  type="text"
+                  value={paymentTerms}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                  placeholder="Ex: 30/60/90"
+                />
+                <small className="field-hint">Informe os dias do boleto, separados por barra (ex: 30/60/90).</small>
+              </div>
+            )}
           </div>
 
           <div className="form-row">
