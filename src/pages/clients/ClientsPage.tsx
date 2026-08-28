@@ -3,9 +3,10 @@ import axios from "axios";
 import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
 import ToggleSwitch from "../../components/ToggleSwitch";
+import ConfirmModal from "../../components/ConfirmModal";
 import { maskCNPJ, maskPhone, maskStateInscr, maskCEP, validateCNPJ } from "../../utils/masks";
 import { lookupCNPJ } from "../../services/cnpjLookup";
-import { notify } from "../../utils/notify";
+import { notify, getErrorMessage } from "../../utils/notify";
 import {
   FaUsers,
   FaPlus,
@@ -17,6 +18,7 @@ import {
   FaCheck,
   FaSpinner,
   FaCheckCircle,
+  FaTrash,
 } from "react-icons/fa";
 import "./Clients.css";
 
@@ -86,6 +88,9 @@ const ClientsPage: React.FC = () => {
   const [isLoadingCNPJ, setIsLoadingCNPJ] = useState(false);
   const [cnpjAutoFilled, setCnpjAutoFilled] = useState(false);
 
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const fetchClients = () => {
     api
       .get("/clients")
@@ -115,6 +120,23 @@ const ClientsPage: React.FC = () => {
           prev.map((c) => (c.id === client.id ? { ...c, active: client.active } : c))
         );
       });
+  };
+
+  const handleDeleteClient = () => {
+    if (!clientToDelete) return;
+    setDeleting(true);
+    api
+      .delete(`/clients/${clientToDelete.id}`)
+      .then(() => {
+        notify.success("Cliente excluído com sucesso.");
+        setClients((prev) => prev.filter((c) => c.id !== clientToDelete.id));
+        setClientToDelete(null);
+      })
+      .catch((err) => {
+        console.error("Erro ao excluir cliente:", err);
+        notify.error(getErrorMessage(err, "Não foi possível excluir o cliente."));
+      })
+      .finally(() => setDeleting(false));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -309,11 +331,22 @@ const ClientsPage: React.FC = () => {
                   <span className="client-card-name">
                     <FaBuilding className="card-icon" /> {client.companyName}
                   </span>
-                  <ToggleSwitch
-                    checked={client.active}
-                    onChange={(next) => handleToggleActive(client, next)}
-                    id={`client-toggle-${client.id}`}
-                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <ToggleSwitch
+                      checked={client.active}
+                      onChange={(next) => handleToggleActive(client, next)}
+                      id={`client-toggle-${client.id}`}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon-sm"
+                      onClick={() => setClientToDelete(client)}
+                      title="Excluir cliente"
+                      style={{ color: "var(--color-danger)" }}
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
                 </div>
                 <div className="client-card-info">
                   <div className="client-info-row">
@@ -446,6 +479,23 @@ const ClientsPage: React.FC = () => {
               </form>
             </div>
           </div>
+        )}
+
+        {clientToDelete && (
+          <ConfirmModal
+            title="Excluir Cliente"
+            message={
+              <>
+                Tem certeza que deseja excluir <strong>{clientToDelete.companyName}</strong>?
+                Esta ação não pode ser desfeita. Se este cliente já tiver pedidos registrados, a exclusão
+                não será permitida — nesse caso, inative o cliente em vez de excluí-lo.
+              </>
+            }
+            confirmLabel="Excluir"
+            confirming={deleting}
+            onConfirm={handleDeleteClient}
+            onCancel={() => setClientToDelete(null)}
+          />
         )}
 
       </div>

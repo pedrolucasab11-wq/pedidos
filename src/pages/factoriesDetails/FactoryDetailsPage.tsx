@@ -3,8 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import Sidebar from "../../components/Sidebar";
 import ToggleSwitch from "../../components/ToggleSwitch";
+import ConfirmModal from "../../components/ConfirmModal";
 import { maskCurrency } from "../../utils/masks";
-import { notify } from "../../utils/notify";
+import { notify, getErrorMessage } from "../../utils/notify";
 import {
   FaArrowLeft,
   FaBuilding,
@@ -27,6 +28,7 @@ import {
   FaHashtag,
   FaCheck,
   FaPencilAlt,
+  FaTrash,
 } from "react-icons/fa";
 import "./FactoriesDetails.css";
 
@@ -78,6 +80,8 @@ const FactoryDetailsPage: React.FC = () => {
   const [priceInput, setPriceInput] = useState("");
   const [loadError, setLoadError] = useState(false);
   const [submittingProduct, setSubmittingProduct] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Função para gerar código automático do produto
   const generateProductCode = () => {
@@ -121,6 +125,25 @@ const FactoryDetailsPage: React.FC = () => {
         setLoadError(true);
       });
   }, [id]);
+
+  const handleDeleteFactory = () => {
+    if (!factory) return;
+    setDeleting(true);
+    api
+      .delete(`/factories/${factory.id}`)
+      .then(() => {
+        notify.success("Fábrica excluída com sucesso.");
+        navigate("/fabricas");
+      })
+      .catch((err) => {
+        console.error("Erro ao excluir fábrica:", err);
+        notify.error(getErrorMessage(err, "Não foi possível excluir a fábrica."));
+      })
+      .finally(() => {
+        setDeleting(false);
+        setShowDeleteConfirm(false);
+      });
+  };
 
   const handleToggleActive = (nextActive: boolean) => {
     if (!factory) return;
@@ -253,6 +276,14 @@ const FactoryDetailsPage: React.FC = () => {
                   title="Editar dados da fábrica"
                 >
                   <FaPencilAlt /> Editar
+                </button>
+                <button
+                  className="btn btn-ghost btn-icon-sm"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  title="Excluir fábrica"
+                  style={{ color: "var(--color-danger)" }}
+                >
+                  <FaTrash /> Excluir
                 </button>
                 <ToggleSwitch
                   checked={factory.active}
@@ -427,6 +458,23 @@ const FactoryDetailsPage: React.FC = () => {
               </form>
             </div>
           </div>
+        )}
+
+        {showDeleteConfirm && (
+          <ConfirmModal
+            title="Excluir Fábrica"
+            message={
+              <>
+                Tem certeza que deseja excluir <strong>{factory.name}</strong>?
+                Esta ação não pode ser desfeita. Se esta fábrica já tiver produtos ou pedidos registrados,
+                a exclusão não será permitida — nesse caso, inative a fábrica em vez de excluí-la.
+              </>
+            }
+            confirmLabel="Excluir"
+            confirming={deleting}
+            onConfirm={handleDeleteFactory}
+            onCancel={() => setShowDeleteConfirm(false)}
+          />
         )}
       </main>
     </div>
