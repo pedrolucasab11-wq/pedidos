@@ -34,6 +34,10 @@ export interface Client {
   phone?: string;
 }
 
+// Nota: a observação do cliente é específica de cada pedido (não do cadastro
+// do cliente), por isso é passada separadamente em generateOrderPDF, e não
+// como parte da interface Client.
+
 export interface Seller {
   id: number;
   name: string;
@@ -62,6 +66,7 @@ export const generateOrderPDF = (orderData: {
   buyerName: string;
   buyerPhone?: string;
   sellerName?: string;
+  clientObservation?: string;
   paymentMethod: string;
   paymentTerms?: string;
   freightType?: string;
@@ -78,6 +83,7 @@ export const generateOrderPDF = (orderData: {
     buyerName,
     buyerPhone,
     sellerName,
+    clientObservation,
     paymentMethod,
     paymentTerms,
     freightType,
@@ -472,6 +478,12 @@ export const generateOrderPDF = (orderData: {
                     </div>
                 </div>
             </div>
+            ${clientObservation ? `
+            <div class="info-line" style="margin-top: 8px; border-top: 1px solid #ccc; padding-top: 8px;">
+                <span class="info-label">OBS. CLIENTE:</span>
+                <span class="info-value">${clientObservation}</span>
+            </div>
+            ` : ''}
         </div>
 
         <!-- Seção do Comprador -->

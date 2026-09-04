@@ -26,6 +26,7 @@ const EditOrderPage: React.FC = () => {
   const [buyerName, setBuyerName] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [sellerName, setSellerName] = useState("");
+  const [clientObservation, setClientObservation] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [description, setDescription] = useState("");
@@ -54,6 +55,7 @@ const EditOrderPage: React.FC = () => {
         setBuyerName(order.buyerName || "");
         setBuyerPhone(order.buyerPhone || "");
         setSellerName(order.sellerName || order.seller?.name || "");
+        setClientObservation(order.clientObservation || "");
         setPaymentMethod(order.paymentMethod || "PIX");
         setPaymentTerms(order.paymentTerms || "");
         setDescription(order.description || "");
@@ -90,6 +92,7 @@ const EditOrderPage: React.FC = () => {
       buyerName,
       buyerPhone,
       sellerName: sellerName.trim(),
+      clientObservation: clientObservation.trim(),
       paymentMethod,
       paymentTerms: isInstallmentPayment(paymentMethod) ? paymentTerms.trim() : "",
       description,
@@ -241,6 +244,16 @@ const EditOrderPage: React.FC = () => {
                 maxLength={15}
               />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label>Observação do Cliente</label>
+            <textarea
+              value={clientObservation}
+              onChange={(e) => setClientObservation(e.target.value)}
+              placeholder="Ex: preferências de entrega, combinados específicos com este cliente..."
+              rows={2}
+            />
           </div>
 
           <div className="form-group">
