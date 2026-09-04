@@ -177,6 +177,17 @@ select:disabled { background: #eceff1; cursor: not-allowed; color: #90a4ae; }
   padding: 0 16px;
   font-size: 14px;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Botão só com ícone (sem texto): tamanho fixo quadrado, nunca encolhe abaixo
+   do tamanho do ícone dentro de linhas flex apertadas (ex: cards de listagem). */
+.btn-icon-square {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 15px;
+  flex-shrink: 0;
 }
 
 /* ===== CARDS ===== */

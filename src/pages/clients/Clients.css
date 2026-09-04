@@ -30,6 +30,7 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .client-card-name {
@@ -39,6 +40,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.client-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .client-card-info {

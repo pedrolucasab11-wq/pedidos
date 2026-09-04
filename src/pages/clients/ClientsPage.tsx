@@ -394,7 +394,7 @@ const ClientsPage: React.FC = () => {
                   <span className="client-card-name">
                     <FaBuilding className="card-icon" /> {client.companyName}
                   </span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div className="client-card-actions">
                     <ToggleSwitch
                       checked={client.active}
                       onChange={(next) => handleToggleActive(client, next)}
@@ -402,7 +402,7 @@ const ClientsPage: React.FC = () => {
                     />
                     <button
                       type="button"
-                      className="btn btn-ghost btn-icon-sm"
+                      className="btn btn-ghost btn-icon-square"
                       onClick={() => handleOpenEdit(client)}
                       title="Editar cliente"
                     >
@@ -410,7 +410,7 @@ const ClientsPage: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      className="btn btn-ghost btn-icon-sm"
+                      className="btn btn-ghost btn-icon-square"
                       onClick={() => setClientToDelete(client)}
                       title="Excluir cliente"
                       style={{ color: "var(--color-danger)" }}

@@ -125,7 +125,7 @@ const FactoriesPage: React.FC = () => {
                   <div>
                     <div className="factory-name-row">
                       <span className="factory-name">{factory.name}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div className="factory-name-actions">
                         <ToggleSwitch
                           checked={factory.active}
                           onChange={(next) => handleToggleActive(factory, next)}
@@ -133,7 +133,7 @@ const FactoriesPage: React.FC = () => {
                         />
                         <button
                           type="button"
-                          className="btn btn-ghost btn-icon-sm"
+                          className="btn btn-ghost btn-icon-square"
                           onClick={() => setFactoryToDelete(factory)}
                           title="Excluir fábrica"
                           style={{ color: "var(--color-danger)" }}

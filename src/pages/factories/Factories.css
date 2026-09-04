@@ -91,12 +91,22 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .factory-name {
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--color-text);
+  min-width: 0;
+  word-break: break-word;
+}
+
+.factory-name-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .factory-contact-row {
