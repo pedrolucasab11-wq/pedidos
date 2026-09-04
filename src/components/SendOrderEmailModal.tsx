@@ -14,7 +14,7 @@ interface SendOrderEmailModalProps {
   onClose: () => void;
 }
 
-type RecipientResult = { type: "client" | "factory"; email: string; success: boolean };
+type RecipientResult = { type: "client" | "factory"; email: string; success: boolean; error?: string };
 
 /**
  * Modal de confirmação para enviar o resumo de um pedido por e-mail.
@@ -109,6 +109,11 @@ const SendOrderEmailModal: React.FC<SendOrderEmailModalProps> = ({
                   <div>
                     <strong>{r.type === "client" ? "Cliente" : "Fábrica"}</strong>
                     <div style={{ fontSize: "0.9rem" }}>{r.email}</div>
+                    {!r.success && r.error && (
+                      <div style={{ fontSize: "0.85rem", color: "var(--color-danger)", marginTop: "2px" }}>
+                        {r.error}
+                      </div>
+                    )}
                   </div>
                   <span className="send-email-result-status">
                     {r.success ? "Enviado" : "Falhou"}
