@@ -39,6 +39,7 @@ export interface Seller {
   name: string;
   email?: string;
   phone?: string;
+  representation?: string;
 }
 
 export interface CartItem {
@@ -60,6 +61,7 @@ export const generateOrderPDF = (orderData: {
   cart: CartItem[];
   buyerName: string;
   buyerPhone?: string;
+  sellerName?: string;
   paymentMethod: string;
   paymentTerms?: string;
   freightType?: string;
@@ -75,6 +77,7 @@ export const generateOrderPDF = (orderData: {
     cart,
     buyerName,
     buyerPhone,
+    sellerName,
     paymentMethod,
     paymentTerms,
     freightType,
@@ -109,10 +112,10 @@ export const generateOrderPDF = (orderData: {
                 margin: 0 auto;
             }
             
-            /* Header com 3 colunas */
+            /* Header com 2 colunas (Representação e Fabricante) */
             .header-section {
                 display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
+                grid-template-columns: 1fr 1fr;
                 gap: 15px;
                 margin-bottom: 10px;
                 padding-bottom: 10px;
@@ -142,35 +145,37 @@ export const generateOrderPDF = (orderData: {
                 margin-bottom: 2px;
             }
             
-            /* Dados do pedido - canto superior direito */
-            .order-info {
-                text-align: right;
-                font-weight: bold;
-                font-size: 12px;
+            /* Título principal + número/data do pedido, lado a lado */
+            .main-title-bar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                margin: 10px 0;
+                padding: 8px 14px;
+                background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
+                border: 2px solid #000;
             }
-            
-            .order-info .order-number {
-                font-size: 16px;
-                color: #000;
-                margin-bottom: 5px;
-            }
-            
-            .order-info .order-date {
-                font-size: 12px;
-                color: #666;
-            }
-            
-            /* Título principal */
+
             .main-title {
-                text-align: center;
                 font-size: 16px;
                 font-weight: bold;
                 text-transform: uppercase;
-                margin: 10px 0;
-                padding: 5px;
-                background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
-                border: 2px solid #000;
                 letter-spacing: 1px;
+            }
+
+            .main-title .order-number {
+                font-size: 13px;
+                font-weight: bold;
+                letter-spacing: 0;
+                margin-left: 8px;
+            }
+
+            .main-title-date {
+                font-size: 11px;
+                font-weight: bold;
+                color: #444;
+                white-space: nowrap;
             }
             
             /* Seção do cliente */
@@ -394,13 +399,14 @@ export const generateOrderPDF = (orderData: {
         </style>
     </head>
     <body>
-        <!-- Header com 3 colunas -->
+        <!-- Header com 2 colunas -->
         <div class="header-section">
-            <!-- Dados do Vendedor -->
+            <!-- Dados da Representação -->
             <div class="header-column">
-                <h3>Representante</h3>
+                <h3>Representação</h3>
                 <div class="header-info">
-                    <div class="company-name">${seller.name || ""}</div>
+                    <div class="company-name">${seller.representation || seller.name || ""}</div>
+                    ${seller.representation ? `<div class="contact-info">Vendedor: ${sellerName || seller.name || ""}</div>` : ""}
                     <div class="contact-info">${seller.email || ""}</div>
                     <div class="contact-info">${seller.phone || ""}</div>
                 </div>
@@ -415,18 +421,13 @@ export const generateOrderPDF = (orderData: {
                     <div class="contact-info">${factory.phone || ""}</div>
                 </div>
             </div>
-            
-            <!-- Dados do Pedido -->
-            <div class="header-column">
-                <div class="order-info">
-                    <div class="order-number">${orderNumber}</div>
-                    <div class="order-date">DATA ${date}</div>
-                </div>
-            </div>
         </div>
         
-        <!-- Título Principal -->
-        <div class="main-title">PEDIDO DE VENDA</div>
+        <!-- Título Principal + Número do Pedido -->
+        <div class="main-title-bar">
+            <div class="main-title">PEDIDO DE VENDA <span class="order-number">N° ${orderNumber}</span></div>
+            <div class="main-title-date">DATA: ${date}</div>
+        </div>
         
         <!-- Seção do Cliente -->
         <div class="client-section">

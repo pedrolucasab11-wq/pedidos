@@ -32,6 +32,7 @@ const CreateOrderPage: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [buyerName, setBuyerName] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
+  const [sellerName, setSellerName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [description, setDescription] = useState("");
@@ -49,7 +50,12 @@ const CreateOrderPage: React.FC = () => {
     // Buscar vendedor autenticado (pedidos são sempre criados em nome de quem está logado)
     api
       .get("/auth/me")
-      .then((res) => setCurrentSeller(res.data))
+      .then((res) => {
+        setCurrentSeller(res.data);
+        // Pré-preenche com o nome de quem está logado, mas o campo continua
+        // editável (pode ser outro vendedor da mesma representação/conta).
+        setSellerName(res.data.name || "");
+      })
       .catch((err) => {
         console.error("Erro ao buscar vendedor:", err);
         notify.apiError(err, "Não foi possível carregar seus dados de vendedor.");
@@ -98,6 +104,7 @@ const CreateOrderPage: React.FC = () => {
       clientId: selectedClient,
       buyerName,
       buyerPhone,
+      sellerName: sellerName.trim(),
       paymentMethod,
       paymentTerms: isInstallmentPayment(paymentMethod) ? paymentTerms.trim() : "",
       description,
@@ -132,6 +139,7 @@ const CreateOrderPage: React.FC = () => {
             cart,
             buyerName,
             buyerPhone,
+            sellerName: sellerName.trim(),
             paymentMethod,
             paymentTerms: isInstallmentPayment(paymentMethod) ? paymentTerms.trim() : "",
             freightType,
@@ -218,6 +226,16 @@ const CreateOrderPage: React.FC = () => {
 
           <div className="form-row">
             <div className="form-group">
+              <label>Vendedor</label>
+              <input
+                type="text"
+                value={sellerName}
+                onChange={(e) => setSellerName(e.target.value)}
+                placeholder="Nome de quem está vendendo"
+              />
+              <small className="field-hint">Pré-preenchido com seu nome, mas pode ser alterado se outra pessoa estiver vendendo.</small>
+            </div>
+            <div className="form-group">
               <label>Nome do Comprador</label>
               <input
                 type="text"
@@ -236,6 +254,9 @@ const CreateOrderPage: React.FC = () => {
                 maxLength={15}
               />
             </div>
+          </div>
+
+          <div className="form-row">
             <div className="form-group">
               <label>Forma de Pagamento</label>
               <select

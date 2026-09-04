@@ -64,6 +64,7 @@ interface Order {
   createdAt: string;
   buyerName: string;
   buyerPhone?: string;
+  sellerName?: string | null;
   paymentMethod: string;
   paymentTerms?: string | null;
   items: OrderItem[];
@@ -150,6 +151,7 @@ const DashboardPage: React.FC = () => {
       })),
       buyerName: order.buyerName,
       buyerPhone: order.buyerPhone,
+      sellerName: order.sellerName || "",
       paymentMethod: order.paymentMethod,
       paymentTerms: order.paymentTerms || "",
       freightType: order.freightType,

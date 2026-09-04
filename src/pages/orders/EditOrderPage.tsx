@@ -25,6 +25,7 @@ const EditOrderPage: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [buyerName, setBuyerName] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
+  const [sellerName, setSellerName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [description, setDescription] = useState("");
@@ -52,6 +53,7 @@ const EditOrderPage: React.FC = () => {
         setSelectedClient(order.clientId);
         setBuyerName(order.buyerName || "");
         setBuyerPhone(order.buyerPhone || "");
+        setSellerName(order.sellerName || order.seller?.name || "");
         setPaymentMethod(order.paymentMethod || "PIX");
         setPaymentTerms(order.paymentTerms || "");
         setDescription(order.description || "");
@@ -87,6 +89,7 @@ const EditOrderPage: React.FC = () => {
       clientId: selectedClient,
       buyerName,
       buyerPhone,
+      sellerName: sellerName.trim(),
       paymentMethod,
       paymentTerms: isInstallmentPayment(paymentMethod) ? paymentTerms.trim() : "",
       description,
@@ -210,6 +213,15 @@ const EditOrderPage: React.FC = () => {
           </div>
 
           <div className="form-row">
+            <div className="form-group">
+              <label>Vendedor</label>
+              <input
+                type="text"
+                value={sellerName}
+                onChange={(e) => setSellerName(e.target.value)}
+                placeholder="Nome de quem está vendendo"
+              />
+            </div>
             <div className="form-group">
               <label>Nome do Comprador</label>
               <input

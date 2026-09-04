@@ -5,6 +5,7 @@ import {
   FaClipboardList,
   FaIndustry,
   FaUsers,
+  FaUserCircle,
   FaSignOutAlt,
 } from "react-icons/fa";
 import api from "../services/api";
@@ -14,6 +15,7 @@ interface Seller {
   id: number;
   name: string;
   logo: string;
+  representation?: string | null;
 }
 
 function Sidebar() {
@@ -40,7 +42,7 @@ function Sidebar() {
           <>
             <img src={seller.logo} alt="Logo" className="seller-logo" />
             <h3>{seller.name}</h3>
-            <span>Representante</span>
+            <span>{seller.representation || "Representação"}</span>
           </>
         ) : (
           <h3>Carregando...</h3>
@@ -59,6 +61,9 @@ function Sidebar() {
         </NavLink>
         <NavLink to="/clientes" className={({ isActive }) => isActive ? "active" : ""}>
           <span className="nav-icon"><FaUsers /></span> Clientes
+        </NavLink>
+        <NavLink to="/perfil" className={({ isActive }) => isActive ? "active" : ""}>
+          <span className="nav-icon"><FaUserCircle /></span> Meu Perfil
         </NavLink>
       </nav>
 

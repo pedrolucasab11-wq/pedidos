@@ -1,0 +1,21 @@
+/* ===== PROFILE PAGE ===== */
+.profile-container { display: flex; min-height: 100vh; }
+.profile-content { flex: 1; padding: 2.5rem; background: var(--color-bg); }
+
+.profile-form {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1.5px solid #dde3ea;
+  padding: 2rem;
+  max-width: 760px;
+}
+
+.phone-row {
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .profile-content { padding: 1.5rem; }
+  .profile-form { padding: 1.25rem; }
+}

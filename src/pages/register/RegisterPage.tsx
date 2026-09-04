@@ -1,7 +1,7 @@
 import { useState } from "react";
 import api from "../../services/api";
 import { useNavigate, Link } from "react-router-dom";
-import { FaUser, FaEnvelope, FaPhone, FaLock, FaExclamationTriangle, FaUserPlus } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaPhone, FaBuilding, FaLock, FaExclamationTriangle, FaUserPlus } from "react-icons/fa";
 import { maskPhone } from "../../utils/masks";
 import { getErrorMessage } from "../../utils/notify";
 import logo from "../../assets/logo.png";
@@ -11,6 +11,7 @@ function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [representation, setRepresentation] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -32,7 +33,13 @@ function RegisterPage() {
 
     setLoading(true);
     try {
-      const response = await api.post("/auth/register", { name, email, phone, password });
+      const response = await api.post("/auth/register", {
+        name,
+        email,
+        phone,
+        representation: representation.trim() || undefined,
+        password,
+      });
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("sellerId", response.data.seller.id);
       navigate("/dashboard");
@@ -105,6 +112,18 @@ function RegisterPage() {
                 onChange={(e) => setPhone(maskPhone(e.target.value))}
                 required
                 autoComplete="tel"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="representation"><FaBuilding className="label-icon" /> Representação (opcional)</label>
+              <input
+                id="representation"
+                type="text"
+                placeholder="Ex: Representações Silva Ltda."
+                value={representation}
+                onChange={(e) => setRepresentation(e.target.value)}
+                autoComplete="organization"
               />
             </div>
 
