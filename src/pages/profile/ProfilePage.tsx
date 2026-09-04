@@ -186,9 +186,9 @@ const ProfilePage: React.FC = () => {
           </div>
 
           <div className="section-divider"><FaPhone /> Telefones</div>
-          {phones.map((phoneValue, index) => (
-            <div className="form-row phone-row" key={index}>
-              <div className="form-group" style={{ flex: 1 }}>
+          <div className="phone-list">
+            {phones.map((phoneValue, index) => (
+              <div className="phone-row" key={index}>
                 <input
                   type="tel"
                   value={phoneValue}
@@ -196,20 +196,19 @@ const ProfilePage: React.FC = () => {
                   placeholder="(11) 99999-9999"
                   maxLength={15}
                 />
+                {phones.length > 1 && (
+                  <button
+                    type="button"
+                    className="phone-remove-btn"
+                    onClick={() => handleRemovePhone(index)}
+                    title="Remover telefone"
+                  >
+                    <FaTrash />
+                  </button>
+                )}
               </div>
-              {phones.length > 1 && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-icon-sm"
-                  onClick={() => handleRemovePhone(index)}
-                  title="Remover telefone"
-                  style={{ color: "var(--color-danger)" }}
-                >
-                  <FaTrash />
-                </button>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
           <button type="button" className="btn btn-ghost" onClick={handleAddPhone}>
             <FaPlus /> Adicionar outro telefone
           </button>

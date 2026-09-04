@@ -11,8 +11,43 @@
   max-width: 760px;
 }
 
+.phone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+
 .phone-row {
+  display: flex;
   align-items: center;
+  gap: 10px;
+}
+
+.phone-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.phone-remove-btn {
+  flex-shrink: 0;
+  width: var(--input-height);
+  height: var(--input-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+  cursor: pointer;
+  font-size: 1.05rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.phone-remove-btn:hover {
+  background: var(--color-danger-light);
+  border-color: var(--color-danger);
 }
 
 @media (max-width: 768px) {

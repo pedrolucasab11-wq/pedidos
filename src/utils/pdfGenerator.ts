@@ -118,10 +118,10 @@ export const generateOrderPDF = (orderData: {
                 margin: 0 auto;
             }
             
-            /* Header com 2 colunas (Representação e Fabricante) */
+            /* Header com 3 colunas (Representação, Vendedor e Fabricante) */
             .header-section {
                 display: grid;
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr 1fr 1fr;
                 gap: 15px;
                 margin-bottom: 10px;
                 padding-bottom: 10px;
@@ -405,16 +405,23 @@ export const generateOrderPDF = (orderData: {
         </style>
     </head>
     <body>
-        <!-- Header com 2 colunas -->
+        <!-- Header com 3 colunas -->
         <div class="header-section">
             <!-- Dados da Representação -->
             <div class="header-column">
                 <h3>Representação</h3>
                 <div class="header-info">
                     <div class="company-name">${seller.representation || seller.name || ""}</div>
-                    ${seller.representation ? `<div class="contact-info">Vendedor: ${sellerName || seller.name || ""}</div>` : ""}
                     <div class="contact-info">${seller.email || ""}</div>
                     <div class="contact-info">${seller.phone || ""}</div>
+                </div>
+            </div>
+
+            <!-- Dados do Vendedor -->
+            <div class="header-column">
+                <h3>Vendedor</h3>
+                <div class="header-info">
+                    <div class="company-name">${sellerName || seller.name || ""}</div>
                 </div>
             </div>
             
