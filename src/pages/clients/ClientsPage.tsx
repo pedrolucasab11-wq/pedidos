@@ -19,6 +19,7 @@ import {
   FaSpinner,
   FaCheckCircle,
   FaTrash,
+  FaPencilAlt,
 } from "react-icons/fa";
 import "./Clients.css";
 
@@ -41,6 +42,8 @@ interface NewClient {
   address: string;
   phone: string;
 }
+
+type EditableClient = NewClient;
 
 interface AddressForm {
   cep: string;
@@ -91,6 +94,17 @@ const ClientsPage: React.FC = () => {
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editForm, setEditForm] = useState<EditableClient>({
+    companyName: "",
+    cnpj: "",
+    stateInscr: "",
+    email: "",
+    address: "",
+    phone: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const fetchClients = () => {
     api
       .get("/clients")
@@ -120,6 +134,55 @@ const ClientsPage: React.FC = () => {
           prev.map((c) => (c.id === client.id ? { ...c, active: client.active } : c))
         );
       });
+  };
+
+  const handleOpenEdit = (client: Client) => {
+    setEditingClient(client);
+    setEditForm({
+      companyName: client.companyName,
+      cnpj: client.cnpj,
+      stateInscr: client.stateInscr,
+      email: client.email,
+      address: client.address,
+      phone: client.phone,
+    });
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    let { name, value } = e.target;
+    if (name === "phone") value = maskPhone(value);
+    if (name === "stateInscr") value = maskStateInscr(value);
+    if (name === "cnpj") value = maskCNPJ(value);
+
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClient) return;
+
+    if (!validateCNPJ(editForm.cnpj)) {
+      notify.warning("CNPJ inválido!");
+      return;
+    }
+    if (!editForm.companyName.trim() || !editForm.email.trim() || !editForm.phone.trim() || !editForm.address.trim()) {
+      notify.warning("Nome, e-mail, telefone e endereço são obrigatórios.");
+      return;
+    }
+
+    setSavingEdit(true);
+    api
+      .put(`/clients/${editingClient.id}`, editForm)
+      .then(() => {
+        notify.success("Cliente atualizado com sucesso!");
+        setEditingClient(null);
+        fetchClients();
+      })
+      .catch((err) => {
+        console.error("Erro ao atualizar cliente:", err);
+        notify.apiError(err, "Erro ao atualizar cliente.");
+      })
+      .finally(() => setSavingEdit(false));
   };
 
   const handleDeleteClient = () => {
@@ -340,6 +403,14 @@ const ClientsPage: React.FC = () => {
                     <button
                       type="button"
                       className="btn btn-ghost btn-icon-sm"
+                      onClick={() => handleOpenEdit(client)}
+                      title="Editar cliente"
+                    >
+                      <FaPencilAlt />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon-sm"
                       onClick={() => setClientToDelete(client)}
                       title="Excluir cliente"
                       style={{ color: "var(--color-danger)" }}
@@ -475,6 +546,71 @@ const ClientsPage: React.FC = () => {
                 <div className="modal-footer">
                   <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
                   <button type="submit" className="btn btn-success"><FaCheck /> Salvar Cliente</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Editar Cliente */}
+        {editingClient && (
+          <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setEditingClient(null); }}>
+            <div className="modal" style={{ maxWidth: '640px' }}>
+              <div className="modal-header">
+                <h2><FaPencilAlt className="modal-title-icon" /> Editar Cliente</h2>
+                <button className="modal-close" onClick={() => setEditingClient(null)}><FaTimes /></button>
+              </div>
+
+              <form onSubmit={handleEditSubmit}>
+                <div className="modal-body">
+                  <div className="section-divider"><FaBuilding /> Dados da Empresa</div>
+                  <div className="form-group">
+                    <label htmlFor="e-name">Nome da Empresa *</label>
+                    <input id="e-name" type="text" name="companyName" value={editForm.companyName}
+                      onChange={handleEditChange} placeholder="Ex: Lojas Silva Ltda." required />
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="e-cnpj">CNPJ *</label>
+                      <input id="e-cnpj" type="text" name="cnpj" value={editForm.cnpj}
+                        onChange={handleEditChange} placeholder="00.000.000/0000-00" maxLength={18} required />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="e-ie">Inscrição Estadual</label>
+                      <input id="e-ie" type="text" name="stateInscr" value={editForm.stateInscr}
+                        onChange={handleEditChange} placeholder="000.000.000.000" />
+                    </div>
+                  </div>
+
+                  <div className="section-divider"><FaPhone /> Contato</div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="e-email">E-mail *</label>
+                      <input id="e-email" type="email" name="email" value={editForm.email}
+                        onChange={handleEditChange} placeholder="contato@empresa.com" required />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="e-phone">Telefone *</label>
+                      <input id="e-phone" type="tel" name="phone" value={editForm.phone}
+                        onChange={handleEditChange} placeholder="(11) 99999-9999" required />
+                    </div>
+                  </div>
+
+                  <div className="section-divider"><FaMapMarkerAlt /> Endereço</div>
+                  <div className="form-group">
+                    <label htmlFor="e-address">Endereço Completo *</label>
+                    <textarea id="e-address" name="address" value={editForm.address}
+                      onChange={handleEditChange} placeholder="Rua, número, bairro, cidade - UF, CEP" rows={2} required />
+                  </div>
+                </div>
+
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-ghost" onClick={() => setEditingClient(null)} disabled={savingEdit}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn btn-success" disabled={savingEdit}>
+                    <FaCheck /> {savingEdit ? "Salvando..." : "Salvar Alterações"}
+                  </button>
                 </div>
               </form>
             </div>
