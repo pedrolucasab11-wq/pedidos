@@ -69,6 +69,7 @@ const FactoryDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const [factory, setFactory] = useState<Factory | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: "",
     code: "",
@@ -82,6 +83,8 @@ const FactoryDetailsPage: React.FC = () => {
   const [submittingProduct, setSubmittingProduct] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState(false);
 
   // Função para gerar código automático do produto
   const generateProductCode = () => {
@@ -100,9 +103,10 @@ const FactoryDetailsPage: React.FC = () => {
     return `PRD-${nextCode.toString().padStart(3, "0")}`;
   };
 
-  // Função para abrir o modal de produto e gerar código automaticamente
+  // Função para abrir o modal de produto (criação) e gerar código automaticamente
   const openProductModal = (factoryId: number) => {
     const autoCode = generateProductCode();
+    setEditingProductId(null);
     setNewProduct({
       name: "",
       code: autoCode,
@@ -113,6 +117,41 @@ const FactoryDetailsPage: React.FC = () => {
     });
     setPriceInput(""); // Reset do priceInput
     setShowProductModal(true);
+  };
+
+  // Abre o mesmo modal já preenchido com os dados do produto, para edição.
+  const openEditProductModal = (product: Product) => {
+    if (!factory) return;
+    setEditingProductId(product.id);
+    setNewProduct({
+      name: product.name,
+      code: product.code,
+      type: product.type || "",
+      observation: product.observation || "",
+      unitPrice: product.unitPrice || 0,
+      factoryId: factory.id,
+    });
+    setPriceInput(product.unitPrice != null ? maskCurrency(product.unitPrice) : "");
+    setShowProductModal(true);
+  };
+
+  const handleDeleteProduct = () => {
+    if (!productToDelete) return;
+    setDeletingProduct(true);
+    api
+      .delete(`/products/${productToDelete.id}`)
+      .then(() => {
+        notify.success("Produto excluído com sucesso.");
+        setFactory((prev) =>
+          prev ? { ...prev, products: prev.products.filter((p) => p.id !== productToDelete.id) } : prev
+        );
+        setProductToDelete(null);
+      })
+      .catch((err) => {
+        console.error("Erro ao excluir produto:", err);
+        notify.error(getErrorMessage(err, "Não foi possível excluir o produto."));
+      })
+      .finally(() => setDeletingProduct(false));
   };
 
   useEffect(() => {
@@ -202,20 +241,26 @@ const FactoryDetailsPage: React.FC = () => {
       return;
     }
 
+    const payload = {
+      ...newProduct,
+      name,
+      code,
+      type,
+      observation: newProduct.observation.trim(),
+      // Preço de referência é opcional: envia null se o campo ficou vazio.
+      unitPrice: priceInput.trim() === "" ? null : newProduct.unitPrice,
+    };
+
     setSubmittingProduct(true);
-    api
-      .post("/products", {
-        ...newProduct,
-        name,
-        code,
-        type,
-        observation: newProduct.observation.trim(),
-        // Preço de referência é opcional: envia null se o campo ficou vazio.
-        unitPrice: priceInput.trim() === "" ? null : newProduct.unitPrice,
-      })
+    const request = editingProductId
+      ? api.put(`/products/${editingProductId}`, payload)
+      : api.post("/products", payload);
+
+    request
       .then(() => {
-        notify.success("Produto cadastrado com sucesso!");
+        notify.success(editingProductId ? "Produto atualizado com sucesso!" : "Produto cadastrado com sucesso!");
         setShowProductModal(false);
+        setEditingProductId(null);
         setNewProduct({
           name: "",
           code: "",
@@ -230,8 +275,8 @@ const FactoryDetailsPage: React.FC = () => {
       })
       .then((res) => setFactory(res.data))
       .catch((err) => {
-        console.error("Erro ao cadastrar produto:", err);
-        notify.apiError(err, "Erro ao cadastrar produto.");
+        console.error("Erro ao salvar produto:", err);
+        notify.apiError(err, "Erro ao salvar produto.");
       })
       .finally(() => setSubmittingProduct(false));
   };
@@ -375,7 +420,28 @@ const FactoryDetailsPage: React.FC = () => {
           <div className="products-grid">
             {factory.products.map((product) => (
               <div key={product.id} className="product-card">
-                <div className="product-name">{product.name}</div>
+                <div className="product-name-row">
+                  <div className="product-name">{product.name}</div>
+                  <div className="product-actions">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon-square"
+                      onClick={() => openEditProductModal(product)}
+                      title="Editar produto"
+                    >
+                      <FaPencilAlt />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon-square"
+                      onClick={() => setProductToDelete(product)}
+                      title="Excluir produto"
+                      style={{ color: "var(--color-danger)" }}
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                </div>
                 <div className="product-code"><FaHashtag className="row-icon" /> Código: {product.code}</div>
                 <p>
                   {product.unitPrice != null
@@ -395,12 +461,12 @@ const FactoryDetailsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Modal Produto */}
+        {/* Modal Produto (criação e edição) */}
         {showProductModal && (
           <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowProductModal(false); }}>
             <div className="modal">
               <div className="modal-header">
-                <h2><FaBoxOpen className="modal-title-icon" /> Novo Produto</h2>
+                <h2><FaBoxOpen className="modal-title-icon" /> {editingProductId ? "Editar Produto" : "Novo Produto"}</h2>
                 <button className="modal-close" onClick={() => setShowProductModal(false)}><FaTimes /></button>
               </div>
               <form onSubmit={handleProductSubmit}>
@@ -452,12 +518,29 @@ const FactoryDetailsPage: React.FC = () => {
                 <div className="modal-footer">
                   <button type="button" className="btn btn-ghost" onClick={() => setShowProductModal(false)} disabled={submittingProduct}>Cancelar</button>
                   <button type="submit" className="btn btn-success" disabled={submittingProduct}>
-                    <FaCheck /> {submittingProduct ? "Salvando..." : "Salvar Produto"}
+                    <FaCheck /> {submittingProduct ? "Salvando..." : editingProductId ? "Salvar Alterações" : "Salvar Produto"}
                   </button>
                 </div>
               </form>
             </div>
           </div>
+        )}
+
+        {productToDelete && (
+          <ConfirmModal
+            title="Excluir Produto"
+            message={
+              <>
+                Tem certeza que deseja excluir <strong>{productToDelete.name}</strong>?
+                Esta ação não pode ser desfeita. Se este produto já tiver sido usado em algum pedido,
+                a exclusão não será permitida.
+              </>
+            }
+            confirmLabel="Excluir"
+            confirming={deletingProduct}
+            onConfirm={handleDeleteProduct}
+            onCancel={() => setProductToDelete(null)}
+          />
         )}
 
         {showDeleteConfirm && (

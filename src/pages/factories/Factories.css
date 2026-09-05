@@ -191,11 +191,28 @@
 }
 .product-card:hover { box-shadow: var(--shadow-md); }
 
+.product-name-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
 .product-name {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 6px;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.product-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 .product-code {
   font-size: 14px;

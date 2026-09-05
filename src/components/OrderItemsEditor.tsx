@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import api from "../services/api";
 import { Product, Factory, CartItem } from "../utils/pdfGenerator";
 import { maskCurrency } from "../utils/masks";
 import { notify } from "../utils/notify";
@@ -14,6 +15,7 @@ import {
   FaTrash,
   FaTruck,
   FaTimes,
+  FaSpinner,
 } from "react-icons/fa";
 
 interface OrderItemsEditorProps {
@@ -24,10 +26,18 @@ interface OrderItemsEditorProps {
   onFreightTypeChange: (freightType: string) => void;
 }
 
+// Tempo de espera após o usuário parar de digitar antes de buscar: evita
+// disparar uma requisição a cada tecla pressionada.
+const SEARCH_DEBOUNCE_MS = 350;
+
 /**
  * Seção reutilizável de seleção de produtos, carrinho e frete de um pedido.
  * Usada tanto na criação (fábrica escolhida pelo usuário) quanto na edição
  * (fábrica fixa, já vinculada ao pedido existente).
+ *
+ * Os produtos NÃO vêm pré-carregados na fábrica: são buscados sob demanda via
+ * GET /products?factoryId=...&search=..., para não travar a tela quando uma
+ * fábrica tem muitos produtos cadastrados.
  */
 const OrderItemsEditor: React.FC<OrderItemsEditorProps> = ({
   factory,
@@ -37,6 +47,8 @@ const OrderItemsEditor: React.FC<OrderItemsEditorProps> = ({
   onFreightTypeChange,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [type, setType] = useState("");
@@ -45,13 +57,29 @@ const OrderItemsEditor: React.FC<OrderItemsEditorProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [unitPriceInput, setUnitPriceInput] = useState("");
 
-  const filteredProducts = factory
-    ? (factory.products || []).filter(
-        (product) =>
-          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.code.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : [];
+  // Busca os produtos da fábrica sempre que ela muda ou o termo de busca é
+  // alterado (com debounce). Sem termo de busca, mostra os primeiros
+  // produtos da fábrica (limitado no backend) para já dar algo pra ver.
+  useEffect(() => {
+    if (!factory) {
+      setProducts([]);
+      return;
+    }
+
+    setLoadingProducts(true);
+    const timeoutId = setTimeout(() => {
+      api
+        .get("/products", { params: { factoryId: factory.id, search: searchTerm || undefined } })
+        .then((res) => setProducts(res.data))
+        .catch((err) => {
+          console.error("Erro ao buscar produtos:", err);
+          notify.apiError(err, "Não foi possível buscar os produtos da fábrica.");
+        })
+        .finally(() => setLoadingProducts(false));
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [factory, searchTerm]);
 
   const openProductModal = (product: Product) => {
     setSelectedProduct(product);
@@ -155,7 +183,7 @@ const OrderItemsEditor: React.FC<OrderItemsEditorProps> = ({
       {factory && (
         <>
           <div className="section-divider"><FaBoxOpen /> Produtos da Fábrica: {factory.name}</div>
-          <div className="search-bar" style={{ maxWidth: '600px' }}>
+          <div className="search-bar" style={{ maxWidth: '600px', position: 'relative' }}>
             <FaSearch className="search-bar-icon" />
             <input
               type="text"
@@ -164,10 +192,13 @@ const OrderItemsEditor: React.FC<OrderItemsEditorProps> = ({
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ width: '100%' }}
             />
+            {loadingProducts && (
+              <FaSpinner className="spin-icon" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-primary)' }} />
+            )}
           </div>
 
           <div className="products-grid">
-            {filteredProducts.map((product) => (
+            {products.map((product) => (
               <div key={product.id} className="product-card">
                 <div className="product-name">{product.name}</div>
                 <div className="product-code"><FaHashtag className="row-icon" /> Código: {product.code}</div>
@@ -191,8 +222,10 @@ const OrderItemsEditor: React.FC<OrderItemsEditorProps> = ({
                 </button>
               </div>
             ))}
-            {filteredProducts.length === 0 && (
-              <p style={{ color: '#666', gridColumn: '1 / -1' }}>Nenhum produto encontrado na busca.</p>
+            {!loadingProducts && products.length === 0 && (
+              <p style={{ color: '#666', gridColumn: '1 / -1' }}>
+                {searchTerm ? "Nenhum produto encontrado na busca." : "Esta fábrica ainda não tem produtos cadastrados."}
+              </p>
             )}
           </div>
         </>

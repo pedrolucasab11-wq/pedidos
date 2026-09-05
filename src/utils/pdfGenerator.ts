@@ -18,7 +18,11 @@ export interface Factory {
   logo: string;
   email: string;
   phone: string;
+  // Produtos não vêm mais embutidos na fábrica (buscados sob demanda via
+  // GET /products?factoryId=...). _count.products é usado só para exibir a
+  // quantidade em listagens, sem carregar a lista completa.
   products?: Product[];
+  _count?: { products: number };
 }
 
 export interface Client {

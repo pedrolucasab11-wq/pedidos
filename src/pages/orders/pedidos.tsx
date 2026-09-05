@@ -62,7 +62,7 @@ const CreateOrderPage: React.FC = () => {
         notify.apiError(err, "Não foi possível carregar seus dados de vendedor.");
       });
 
-    // Buscar fábricas (com produtos inclusos)
+    // Buscar fábricas (produtos são buscados sob demanda ao selecionar uma)
     api
       .get("/factories")
       .then((res) => setFactories(res.data.filter((f: any) => f.active !== false)))
@@ -221,7 +221,7 @@ const CreateOrderPage: React.FC = () => {
                 <option value="">Selecione uma fábrica</option>
                 {factories.map((factory) => (
                   <option key={factory.id} value={factory.id}>
-                    {factory.name} ({factory.products?.length || 0} itens)
+                    {factory.name} ({factory._count?.products || 0} itens)
                   </option>
                 ))}
               </select>
